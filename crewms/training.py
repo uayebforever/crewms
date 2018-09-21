@@ -61,6 +61,13 @@ class Task(bases.SQLAlchemyBase):
         back_populates="tasks"
         )
 
+    activity = sa.Column(sa.String)
+    name = sa.Column(sa.String)
+
+    def __init__(self, activity, name):
+        self.activity = activity
+        self.name = name
+
 
 class Skill(bases.SQLAlchemyBase):
 
@@ -73,6 +80,10 @@ class Skill(bases.SQLAlchemyBase):
         secondary=task_skills_association_table,
         back_populates="skills"
     )
+
+    name = sa.Column(sa.String)
+    category = sa.Column(sa.String)
+    level = sa.Column(sa.Integer)
 
 
 class TrainingUnit(object):
