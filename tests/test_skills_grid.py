@@ -26,7 +26,7 @@ def test_skills_for_task(skills_grid):
 #
     skill_list = skills_grid.skills_for_task_by_id(5)
     print(skill_list)
-#     assert len(skill_list) < len(sg.skills)
+    assert len(skill_list) < len(skills_grid.skills)
 #
     # assert False
 
@@ -41,5 +41,11 @@ def test_tasks_for_card(skills_grid):
     print(a_card.tasks)
 
     assert len(a_card.tasks) > 1
+
+    # assert False
+
+def test_report_watch_bill_tasks(skills_grid):
+
+    print(skills_grid.report_watch_bill_tasks("Day Sail"))
 
     assert False

@@ -164,7 +164,7 @@ class SkillsGrid:
             if row[0].value.startswith("WSB Task Assignment:"):
                 wsb_locations[row[0].value[len("WSB Task Assignment:")+1:]] = row[0].row
 
-        print(wsb_locations)
+        # print(wsb_locations)
 
         watchcard_by_number_and_bill = lambda num, bill: session.query(WatchCard).filter(
             WatchCard.card_number == num, WatchCard.bill == bill).one_or_none()
@@ -180,7 +180,7 @@ class SkillsGrid:
                         watch_card = WatchCard(bill=wsb_name, card_number=cell.value)
                         session.add(watch_card)
 
-                    print("Creating card %s" % cell.value)
+                    # print("Creating card %s" % cell.value)
                     watch_card.tasks.append(task_by_id(cell.column))
 
 
@@ -196,3 +196,16 @@ class SkillsGrid:
 
 
 
+    def report_watch_bill_tasks(self, watchbill):
+
+        watchcards = session.query(WatchCard).filter(WatchCard.bill == watchbill).order_by(WatchCard.card_number).all()
+
+        report = []
+
+        for card in watchcards:
+            assert isinstance(card, WatchCard)
+            report.append(card.card_number)
+            for task in card.tasks:
+                report.append("   " + str(task))
+
+        return "\n".join(report)
