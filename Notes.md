@@ -25,3 +25,6 @@
 - [A full example of React and Django together, POST, GET etc... Part 2 - YouTube](https://www.youtube.com/watch?v=6tiaiSr6Pqw)
 - [jQuery.ajax() | jQuery API Documentation](https://api.jquery.com/jQuery.ajax/)
 - [axios/axios: Promise based HTTP client for the browser and node.js](https://github.com/axios/axios)
+
+
+- [Python Websockets Example: Chat](https://github.com/heroku-examples/python-websockets-chat)

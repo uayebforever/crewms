@@ -36,6 +36,8 @@ def test_tasks_for_card(skills_grid):
 
     a_card = card_list[0]
 
+    assert isinstance(a_card, WatchCard)
+
     print(a_card)
 
     print(a_card.tasks)
@@ -44,8 +46,15 @@ def test_tasks_for_card(skills_grid):
 
     # assert False
 
+
 def test_report_watch_bill_tasks(skills_grid):
 
-    print(skills_grid.report_watch_bill_tasks("Day Sail"))
+    assert len(skills_grid.watchcards) > 0
 
-    assert False
+    report = skills_grid.report_watch_bill_tasks("Move Ship")
+
+    print(report)
+    assert len(report) > 0
+
+
+    # assert False

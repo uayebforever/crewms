@@ -34,8 +34,17 @@ class Task(Base):
     name = Column(String)
     category = Column(String)
     evolution = Column(String)
+    rank = Column(Integer)
 
     skills = relationship('Skill', secondary=task_skill, back_populates="tasks")
+
+    @property
+    def one_line_summary(self):
+        return "{category} - {evolution} - {name}".format(
+            name=self.name,
+            category=self.category,
+            evolution=self.evolution
+        )
 
     def __repr__(self):
         return "<Task(%s - %s - %s)>" % (self.category, self.evolution, self.name)
@@ -51,6 +60,13 @@ class Skill(Base):
 
     tasks = relationship('Task', secondary=task_skill, back_populates="skills")
 
+    @property
+    def one_line_summary(self):
+        return "{category}: {name}".format(
+            name=self.name,
+            category=self.category
+        )
+
     def __repr__(self):
         return "<Skill(%s - %s)>" % (self.category, self.name)
 
@@ -63,6 +79,58 @@ class WatchCard(Base):
     card_number = Column(String)
 
     tasks = relationship('Task', secondary=task_watchcard)
+
+    @property
+    def required_rank(self):
+        return max(t.rank for t in self.tasks)
+
+    @property
+    def one_line_summary(self):
+        if self.name is not None:
+            name = " ({})".format(self.name)
+        else:
+            name = ""
+        return "Watch Card {card_number}{name} for {bill} (rank {rank})".format(
+            card_number=self.card_number,
+            name=name,
+            bill=self.bill,
+            rank=self.required_rank
+        )
+
+    @property
+    def full_report(self):
+        text = []
+        text.append("="*78)
+        text.append(self.one_line_summary)
+        text.append(self.tasks_summary)
+        text.append(self.skills_summary)
+        return "\n".join(text)
+
+    @property
+    def tasks_summary(self):
+        text = []
+        text.append("-"*78)
+        text.append("    Tasks Required")
+        text.append("-"*78)
+        for task in self.tasks:
+            text.append("   " + task.one_line_summary)
+        return "\n".join(text)
+
+    @property
+    def skills_summary(self):
+        text = []
+        text.append("-"*78)
+        text.append("    Skills Required")
+        text.append("-"*78)
+
+        all_skills = set()
+        for task in self.tasks:
+            for skill in task.skills:
+                if skill not in all_skills:
+                    all_skills.add(skill)
+        for skill in all_skills:
+            text.append("   " + skill.one_line_summary)
+        return "\n".join(text)
 
 Base.metadata.create_all(engine)
 
@@ -87,6 +155,10 @@ class LastNone:
             return value
 
 
+
+
+
+
 class SkillsGrid:
 
     def __init__(self, workbook_filename):
@@ -95,6 +167,8 @@ class SkillsGrid:
 
         assert "Skills Grid" in self.workbook.sheetnames
         self.skills_grid_sheet = self.workbook["Skills Grid"]  # type: worksheet.Worksheet
+
+        self.defined_names = self.workbook.defined_names
 
     @property
     def skills(self):
@@ -107,6 +181,20 @@ class SkillsGrid:
     @property
     def watchcards(self):
         return session.query(WatchCard).all()
+
+
+    def watchcards_for_bill(self, bill):
+        return session.query(WatchCard).filter(WatchCard.bill == bill).all()
+
+    def _get_cells_for_reference(self, reference_name):
+
+        cells = []
+
+        for sheet_name, cell_reference in self.workbook.defined_names[reference_name].destinations:
+            ws = self.workbook[sheet_name]
+            cells.append(ws[cell_reference])
+
+        return cells
 
     def reload_data(self):
 
@@ -122,7 +210,8 @@ class SkillsGrid:
 
             task = Task(id=cat.column, category=str(tl.last_if_none("category", cat.value)),
                         evolution=str(tl.last_if_none("evolution", evol.value)),
-                        name=str(tl.last_if_none("name", skill.value)))
+                        name=str(tl.last_if_none("name", skill.value)),
+                        rank=rank.value)
             session.add(
                 task
             )
@@ -159,8 +248,15 @@ class SkillsGrid:
 
         # Watch and Station Bill Assignments
 
+        wsb_region = dict()
+        wsb_region["min row"] = self._get_cells_for_reference("BillAssignmentRef")[0].row
+        wsb_region["max row"] = self._get_cells_for_reference("SkillsRef")[0].row - 1
+        wsb_region["header col"] = self._get_cells_for_reference("BillAssignmentRef")[0].column
+
         wsb_locations = dict()
-        for row in self.skills_grid_sheet["C5:C10"]:
+        for row in self.skills_grid_sheet.iter_rows(
+            min_row=wsb_region["min row"], min_col=wsb_region["header col"],
+            max_row=wsb_region["max row"], max_col=wsb_region["header col"]):
             if row[0].value.startswith("WSB Task Assignment:"):
                 wsb_locations[row[0].value[len("WSB Task Assignment:")+1:]] = row[0].row
 
@@ -171,7 +267,7 @@ class SkillsGrid:
 
 
         for wsb_name in wsb_locations:
-            for column in self.skills_grid_sheet.iter_cols(min_col=5, min_row=wsb_locations[wsb_name],
+            for column in self.skills_grid_sheet.iter_cols(min_col=wsb_region["header col"] + 1, min_row=wsb_locations[wsb_name],
                                                        max_col=bounding_box.max_col, max_row=wsb_locations[wsb_name]):
                 cell = column[0]
                 if cell.value is not None:
@@ -202,9 +298,12 @@ class SkillsGrid:
 
         report = []
 
+        if len(watchcards) == 0:
+            report.append("No watch cards assigned to the '%s' watch bill." % watchbill)
+
         for card in watchcards:
             assert isinstance(card, WatchCard)
-            report.append(card.card_number)
+            report.append("Card {}  (required rank: {})".format(card.card_number, card.required_rank))
             for task in card.tasks:
                 report.append("   " + str(task))
 
