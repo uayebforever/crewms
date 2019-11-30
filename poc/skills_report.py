@@ -1,4 +1,23 @@
+import os
+import jinja2
+
 from crewms.jc_skills_grid import *
+import crewms
+
+
+
+latex_jinja_env = jinja2.Environment(
+    block_start_string='\BLOCK{',
+    block_end_string='}',
+    variable_start_string='\VAR{',
+    variable_end_string='}',
+    comment_start_string='\#{',
+    comment_end_string='}',
+    line_statement_prefix='%%',
+    line_comment_prefix='%#',
+    trim_blocks=True,
+    autoescape=False,
+    loader=jinja2.FileSystemLoader(os.path.join(os.path.dirname(crewms.__file__), 'latex_templates')))
 
 
 skills_grid = SkillsGrid("/Users/uayeb/Documents/Outdoors/Sailing/James Craig/Training/2018 Training and Assessment Update/" +
@@ -7,6 +26,31 @@ skills_grid = SkillsGrid("/Users/uayeb/Documents/Outdoors/Sailing/James Craig/Tr
 skills_grid.reload_data()
 
 assert len(skills_grid.watchcards) > 0
+
+if not os.path.exists("/Users/uayeb/Desktop/Watch Card Skills List"):
+    os.mkdir("/Users/uayeb/Desktop/Watch Card Skills List")
+
+
+def watchcard_latex(watch_card):
+    # type: (WatchCard) -> str
+
+    pass
+
+
+
+    template = latex_jinja_env.get_template("full_watch_card.tex")
+    return template.render(
+        card_name=watch_card.one_line_summary,
+        duty_list=[(d.evolution, d.name) for d in watch_card.duties],
+        skills=watch_card.all_skills,
+        tasks=watch_card.tasks
+    )
+
+
+
+
+
+
 
 with open("/Users/uayeb/Desktop/Watch Card Skills List/Move Ship.txt", "w") as f:
 
@@ -28,3 +72,14 @@ with open("/Users/uayeb/Desktop/Watch Card Skills List/Day Sail.txt", "w") as f:
         assert isinstance(card, WatchCard)
         f.write("\n\n")
         f.write(card.full_report)
+
+
+with open("/Users/uayeb/Desktop/Watch Card Skills List/Move Ship.tex", "w") as f:
+    content = []
+    for card in skills_grid.watchcards_for_bill("Move Ship"):
+        content.append("\n\n")
+        content.append(watchcard_latex(card))
+
+    template = latex_jinja_env.get_template("crew_report.tex")
+    f.write(template.render(content="\n".join(content)))
+

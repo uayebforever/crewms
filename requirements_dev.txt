@@ -12,6 +12,7 @@ twine
 openpyxl
 sqlalchemy
 pandas
+jinja2
 
 redis
 gevent

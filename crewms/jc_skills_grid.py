@@ -8,6 +8,8 @@ from openpyxl.worksheet import worksheet
 import openpyxl
 
 
+from typing import List
+
 from sqlalchemy import create_engine, Column, Integer, String, Table, ForeignKey
 from sqlalchemy.orm import sessionmaker, relationship
 engine = create_engine("sqlite:///:memory:")
@@ -93,8 +95,17 @@ class WatchCard(Base):
     name = Column(String)
     card_number = Column(String)
 
-    tasks = relationship('Task', secondary=task_watchcard)
-    duties = relationship('Duty', secondary=duty_watchcard)
+    tasks = relationship('Task', secondary=task_watchcard)  # type: List[Task]
+    duties = relationship('Duty', secondary=duty_watchcard)  # type: List[Duty]
+
+    @property
+    def all_skills(self):
+        all_skills = set()
+        for task in self.tasks:
+            for skill in task.skills:
+                if skill not in all_skills:
+                    all_skills.add(skill)
+        return all_skills
 
     @property
     def required_rank(self):
@@ -214,6 +225,7 @@ class SkillsGrid:
 
 
     def watchcards_for_bill(self, bill):
+        # type: (str) -> List[WatchCard]
         return session.query(WatchCard).filter(WatchCard.bill == bill).order_by(WatchCard.card_number).all()
 
     def _get_cells_for_reference(self, reference_name):

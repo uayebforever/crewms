@@ -1,0 +1,22 @@
+\subsection{\VAR{card_name}}
+
+\subsubsection{Duties}
+
+\begin{tabular}{ll}
+	\BLOCK{for evolution, duty in duty_list}
+		\VAR{evolution} & \VAR{duty} \\
+	\BLOCK{endfor}
+\end{tabular}
+
+\subsubsection{Tasks Expected}
+
+\BLOCK{for task in tasks}
+	\VAR{task.one_line_summary}\par
+\BLOCK{endfor}
+
+
+\subsubsection{Skills Required}
+
+\BLOCK{for skill in skills}
+	\VAR{skill.one_line_summary}\par
+\BLOCK{endfor}
