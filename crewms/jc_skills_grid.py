@@ -96,6 +96,7 @@ class WatchCard(Base):
     bill = Column(String)
     name = Column(String)
     card_number = Column(String)
+    manning_requirements = Column(String)
 
     tasks = relationship('Task', secondary=task_watchcard)  # type: List[Task]
     duties = relationship('Duty',
@@ -346,11 +347,13 @@ class SkillsGrid:
 
             print(evolutions)
             # Iterate over watch cards
+            watch_cards_seen = set()
             for row in sheet.iter_rows(min_row=5, max_row=sheet_bounds.max_row,
                                        min_col=1, max_col=1):
                 cell = row[0]
                 if cell.value is not None:
                     watch_card = watchcard_by_number_and_bill(cell.value, wsb_name)  # type: WatchCard
+                    watch_cards_seen.add(watch_card)
                     if watch_card is None:
                         continue
                     for column in sheet.iter_cols(min_col=6, max_col=6 + len(evolutions) - 1,
@@ -360,6 +363,13 @@ class SkillsGrid:
                         watch_card.duties[evolutions[duty_cell.column]] = \
                             Duty(name=duty_cell.value, evolution=evolutions[duty_cell.column])
                     watch_card.name = sheet.cell(cell.row, 3).value
+
+            if set(self.watchcards_for_bill(wsb_name)) != watch_cards_seen:
+                print("Watch cards missing from bill %s:" % wsb_name)
+                for card in set(self.watchcards_for_bill(wsb_name)).difference(watch_cards_seen):
+                    print("    {0.card_number}".format(card))
+
+
         session.commit()
 
 
