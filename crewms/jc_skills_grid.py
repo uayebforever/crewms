@@ -207,9 +207,12 @@ class SkillsGrid:
         self.skills_grid_sheet = self.workbook["Skills Grid"]  # type: worksheet.Worksheet
 
         assert "WnS Bill" in self.workbook.sheetnames
-        self.wns_bill = self.workbook["WnS Bill"]  # type: worksheet.Worksheet
+        # self.wns_bill = self.workbook["WnS Bill"]  # type: worksheet.Worksheet
+
 
         self.defined_names = self.workbook.defined_names
+
+
 
     @property
     def skills(self):
@@ -321,41 +324,36 @@ class SkillsGrid:
         return wsb_locations
 
     def get_watch_and_station_bill_duties(self, wsb_locations):
-        wns_bill_sheet_locations = dict()
-        for wsb_name in wsb_locations:
-            for column in self.wns_bill.iter_cols(min_col=1, min_row=1,
-                                                  max_col=50, max_row=1):
-                cell = column[0]
-                if cell.value == wsb_name:
-                    wns_bill_sheet_locations[wsb_name] = cell.column
-                    break
+
         # Iterate over watch bills
         for wsb_name in wsb_locations:
-            start_col = wns_bill_sheet_locations[wsb_name]
-
+            # start_col = wns_bill_sheet_locations[wsb_name]
+            sheet = self.workbook["WnS Bill " + wsb_name]
+            sheet_bounds = worksheet.CellRange(sheet.calculate_dimension())
             # Collect evolution names
             evolutions = dict()  # type: Dict[int, str]
-            for column in self.wns_bill.iter_cols(min_col=start_col + 2, max_col=start_col + 10,
-                                                  min_row=4, max_row=4):
+            for column in sheet.iter_cols(min_col=6, max_col=sheet_bounds.max_col,
+                                          min_row=4, max_row=4):
                 cell = column[0]
                 if cell.value != "!":
                     evolutions[cell.column] = cell.value
                 else:
                     break
 
+            print(evolutions)
             # Iterate over watch cards
-            for row in self.wns_bill.iter_rows(min_row=5, max_row=80,
-                                               min_col=1, max_col=1):
+            for row in sheet.iter_rows(min_row=5, max_row=sheet_bounds.max_row,
+                                       min_col=1, max_col=1):
                 cell = row[0]
                 if cell.value is not None:
                     watch_card = watchcard_by_number_and_bill(cell.value, wsb_name)  # type: WatchCard
                     if watch_card is None:
                         continue
-                    for column in self.wns_bill.iter_cols(min_col=start_col + 2, max_col=start_col + len(evolutions),
-                                                          min_row=cell.row, max_row=cell.row):
+                    for column in sheet.iter_cols(min_col=6, max_col=6 + len(evolutions) - 1,
+                                                  min_row=cell.row, max_row=cell.row):
                         duty_cell = column[0]  # type: openpyxl.cell.cell
                         watch_card.duties.append(Duty(name=duty_cell.value, evolution=evolutions[duty_cell.column]))
-                    watch_card.name = self.wns_bill.cell(cell.row, 3).value
+                    watch_card.name = sheet.cell(cell.row, 3).value
         session.commit()
 
 
