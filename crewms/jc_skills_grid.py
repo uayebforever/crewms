@@ -91,6 +91,7 @@ class WatchCard(Base):
     bill = Column(String)
     name = Column(String)
     card_number = Column(String)
+    crew_category = Column(String)
     manning_requirements = Column(String)
 
     tasks = relationship('Task', secondary=task_watchcard)  # type: List[Task]
@@ -249,9 +250,15 @@ class SkillsGrid:
         self.bounding_box = worksheet.CellRange(self.skills_grid_sheet.calculate_dimension())
         self.reload_tasks()
         self.reload_skills()
-        wsb_locations = self.reload_watch_and_station_bill_assignments()
-        self.get_watch_and_station_bill_duties(wsb_locations)
+        generic_tasks = self.reload_watch_and_station_bill_assignments()
+        self.get_watch_and_station_bill_duties(None)
 
+        for bill in generic_tasks:
+            for crew_category, task in generic_tasks[bill].items():
+                for card in all_crew_cards_for_category_and_bill(crew_category, bill):
+                    print("Hi", card)
+                    card.tasks.append(task)
+        session.commit()
 
     def reload_tasks(self):
         # Tasks
@@ -309,6 +316,8 @@ class SkillsGrid:
 
         self.bills = [s for s in wsb_locations]
 
+        generic_tasks = defaultdict(dict)  # type: Dict[str, Dict[str, Task]]
+
         for wsb_name in wsb_locations:
             for column in self.skills_grid_sheet.iter_cols(min_col=wsb_region["header col"] + 1,
                                                            min_row=wsb_locations[wsb_name],
@@ -316,6 +325,11 @@ class SkillsGrid:
                                                            max_row=wsb_locations[wsb_name]):
                 cell = column[0]
                 if cell.value is not None:
+                    value = str(cell.value)
+                    if value.startswith("All "):
+                        crew_category = value[len("All "):]
+                        generic_tasks[wsb_name][crew_category] = task_by_id(cell.column)
+                        continue
                     for card_id in cell.value.split(","):
                         watch_card = watchcard_by_number_and_bill(card_id, wsb_name)
                         if watch_card is None:
@@ -325,12 +339,12 @@ class SkillsGrid:
                         # print("Creating card %s" % cell.value)
                         watch_card.tasks.append(task_by_id(cell.column))
         session.commit()
-        return wsb_locations
+        return generic_tasks
 
     def get_watch_and_station_bill_duties(self, wsb_locations):
 
         # Iterate over watch bills
-        for wsb_name in wsb_locations:
+        for wsb_name in self.bills:
             # start_col = wns_bill_sheet_locations[wsb_name]
             sheet = self.workbook["WnS Bill " + wsb_name]
             sheet_bounds = worksheet.CellRange(sheet.calculate_dimension())
@@ -344,12 +358,17 @@ class SkillsGrid:
                 else:
                     break
 
+            current_crew_category = None
+
             print(evolutions)
             # Iterate over watch cards
             watch_cards_seen = set()
             for row in sheet.iter_rows(min_row=5, max_row=sheet_bounds.max_row,
                                        min_col=1, max_col=1):
                 cell = row[0]
+                if cell.value.startswith("Area: "):
+                    current_crew_category = cell.value[len("Area: "):]
+                    continue
                 if cell.value is not None and str(cell.value).strip() != "":
                     watch_card = watchcard_by_number_and_bill(cell.value, wsb_name)  # type: WatchCard
                     if watch_card is None:
@@ -357,6 +376,7 @@ class SkillsGrid:
                         continue
                     watch_cards_seen.add(watch_card)
                     watch_card.manning_requirements = sheet.cell(row=cell.row, column=2).value
+                    watch_card.crew_category = current_crew_category
                     for column in sheet.iter_cols(min_col=6, max_col=6 + len(evolutions) - 1,
                                                   min_row=cell.row, max_row=cell.row):
 
@@ -405,6 +425,11 @@ def watchcard_by_number_and_bill(num, bill):
     # type: (str, str) -> WatchCard
     return session.query(WatchCard).filter(
         WatchCard.card_number == num, WatchCard.bill == bill).one_or_none()
+
+def all_crew_cards_for_category_and_bill(crew_category, bill):
+    return session.query(WatchCard).filter(
+        WatchCard.bill == bill,
+        WatchCard.crew_category == crew_category).all()
 
 def skill_by_id(id):
     # type: (int) -> Skill

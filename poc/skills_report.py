@@ -42,10 +42,6 @@ if not os.path.exists("/Users/uayeb/Desktop/Watch Card Skills List"):
 def watchcard_latex(watch_card):
     # type: (WatchCard) -> str
 
-    pass
-
-
-
     template = latex_jinja_env.get_template("full_watch_card.tex")
     return template.render(
         card_name=watch_card.one_line_summary,
@@ -114,7 +110,7 @@ with open("/Users/uayeb/Desktop/Watch Card Skills List/Move Ship.tex", "w") as f
 
     content.extend(report_section("Move Ship"))
     content.extend(report_section("Harbour Cruise"))
-    # content.append(report_section("Move Ship"))
+    content.extend(report_section("Day Sail"))
 
 
     template = latex_jinja_env.get_template("crew_report.tex")
