@@ -76,6 +76,13 @@ with open("/Users/uayeb/Desktop/Watch Card Skills List/Day Sail.txt", "w") as f:
 
 with open("/Users/uayeb/Desktop/Watch Card Skills List/Move Ship.tex", "w") as f:
     content = []
+
+    watch_bill_template = latex_jinja_env.get_template("watch_bill.tex")
+    content.append("\\section{Move Ship}")
+    content.append(
+        watch_bill_template.render(watch_cards=skills_grid.watchcards_for_bill("Move Ship"))
+    )
+
     for card in skills_grid.watchcards_for_bill("Move Ship"):
         content.append("\n\n")
         content.append(watchcard_latex(card))
