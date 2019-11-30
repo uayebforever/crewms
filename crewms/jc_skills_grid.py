@@ -211,6 +211,8 @@ class SkillsGrid:
 
         self.defined_names = self.workbook.defined_names
 
+        self.bills = list()
+
 
 
     @property
@@ -304,6 +306,9 @@ class SkillsGrid:
             if row[0].value.startswith("WSB Task Assignment:"):
                 wsb_locations[row[0].value[len("WSB Task Assignment:") + 1:]] = row[0].row
         # print(wsb_locations)
+
+        self.bills = [s for s in wsb_locations]
+
         for wsb_name in wsb_locations:
             for column in self.skills_grid_sheet.iter_cols(min_col=wsb_region["header col"] + 1,
                                                            min_row=wsb_locations[wsb_name],
@@ -345,7 +350,7 @@ class SkillsGrid:
             for row in sheet.iter_rows(min_row=5, max_row=sheet_bounds.max_row,
                                        min_col=1, max_col=1):
                 cell = row[0]
-                if cell.value is not None:
+                if cell.value is not None and str(cell.value).strip() != "":
                     watch_card = watchcard_by_number_and_bill(cell.value, wsb_name)  # type: WatchCard
                     if watch_card is None:
                         print("Watch card %s on Watch and station bill %s not in skills grid." % (cell.value, wsb_name))
@@ -364,7 +369,7 @@ class SkillsGrid:
                 print("Watch cards missing from bill %s:" % wsb_name)
                 for card in set(self.watchcards_for_bill(wsb_name)).difference(watch_cards_seen):
                     print("    {0.card_number}".format(card))
-
+                    session.delete(card)
 
         session.commit()
 

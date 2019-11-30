@@ -82,13 +82,16 @@ with open("/Users/uayeb/Desktop/Watch Card Skills List/Day Sail.txt", "w") as f:
         f.write(card.full_report)
 
 
-with open("/Users/uayeb/Desktop/Watch Card Skills List/Move Ship.tex", "w") as f:
+def report_section(bill_name):
+
+    assert bill_name in skills_grid.bills
+
     content = []
 
     watch_bill_template = latex_jinja_env.get_template("watch_bill.tex")
-    content.append("\\section{Move Ship}")
-    watchcards = skills_grid.watchcards_for_bill("Move Ship")
-    print(", ".join(watchcards[0].duties.keys()))
+    content.append("\clearpage\\section{" + bill_name + "}")
+    watchcards = skills_grid.watchcards_for_bill(bill_name)
+
     content.append(
         watch_bill_template.render(
             watch_cards=sorted(watchcards, key=lambda x: x.card_number),
@@ -97,12 +100,22 @@ with open("/Users/uayeb/Desktop/Watch Card Skills List/Move Ship.tex", "w") as f
     )
 
     card_content = []
-    for card in skills_grid.watchcards_for_bill("Move Ship"):
+    for card in skills_grid.watchcards_for_bill(bill_name):
         card_content.append("\n\n")
         card_content.append(watchcard_latex(card))
     card_section_template = latex_jinja_env.get_template("card_list_section.tex")
-    content.append(card_section_template.render(content=card_content))
+    content.append(card_section_template.render(content="\n".join(card_content)))
+
+    return content
+
+
+with open("/Users/uayeb/Desktop/Watch Card Skills List/Move Ship.tex", "w") as f:
+    content = []
+
+    content.extend(report_section("Move Ship"))
+    content.extend(report_section("Harbour Cruise"))
+    # content.append(report_section("Move Ship"))
+
 
     template = latex_jinja_env.get_template("crew_report.tex")
     f.write(template.render(content="\n".join(content)))
-
