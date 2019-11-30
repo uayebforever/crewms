@@ -31,11 +31,6 @@ task_watchcard = Table("task_watchcard", Base.metadata,
                        Column('watchcard_id', ForeignKey("watchcards.id"), primary_key=True)
                        )
 
-duty_watchcard = Table("duty_watchcard", Base.metadata,
-                       Column('duty_id', ForeignKey('duties.id'), primary_key=True),
-                       Column('watchcard_id', ForeignKey("watchcards.id"), primary_key=True)
-                       )
-
 
 class Task(Base):
     __tablename__ = "tasks"
@@ -86,7 +81,7 @@ class Duty(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String)
     evolution = Column(String)
-    watch_cards = relationship('WatchCard', secondary=duty_watchcard)
+    watch_card_id = Column(Integer, ForeignKey('watchcards.id'))
 
 
 class WatchCard(Base):
@@ -100,8 +95,7 @@ class WatchCard(Base):
 
     tasks = relationship('Task', secondary=task_watchcard)  # type: List[Task]
     duties = relationship('Duty',
-                          collection_class=attribute_mapped_collection('evolution'),
-                          secondary=duty_watchcard)  # type: Dict[str, Duty]
+                          collection_class=attribute_mapped_collection('evolution'))  # type: Dict[str, Duty]
 
     @property
     def all_skills(self):
