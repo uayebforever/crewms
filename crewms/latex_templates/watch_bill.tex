@@ -1,7 +1,22 @@
-\begin{tabular}{l}
+\begin{tabular}
+{lll
+%{ for duty in duties }%
+	l
+%{ endfor }%
+}
+\footnotesize
+\thead{Card} & \thead{Position} & \thead{Rank} 
+%{ for duty in duties }%
+	& \thead{\VAR{duty}}
+%{ endfor }% 
+\\
 
-%{for card in watch_cards}%
-\VAR{card.card_number} \\
-%{endfor}%
+%{ for card in watch_cards }%
+	\VAR{card.card_number} & \VAR{card.name} &  
+	%{ for duty in duties }%
+	& \VAR{card.duties[duty].name} 
+	%{ endfor }% 
+	\\
+%{ endfor }%
 
 \end{tabular}

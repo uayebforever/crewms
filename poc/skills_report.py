@@ -79,8 +79,13 @@ with open("/Users/uayeb/Desktop/Watch Card Skills List/Move Ship.tex", "w") as f
 
     watch_bill_template = latex_jinja_env.get_template("watch_bill.tex")
     content.append("\\section{Move Ship}")
+    watchcards = skills_grid.watchcards_for_bill("Move Ship")
+    print(", ".join(watchcards[0].duties.keys()))
     content.append(
-        watch_bill_template.render(watch_cards=skills_grid.watchcards_for_bill("Move Ship"))
+        watch_bill_template.render(
+            watch_cards=watchcards,
+            duties=watchcards[0].duties.keys()
+        )
     )
 
     for card in skills_grid.watchcards_for_bill("Move Ship"):
