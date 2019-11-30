@@ -41,7 +41,7 @@ def watchcard_latex(watch_card):
     template = latex_jinja_env.get_template("full_watch_card.tex")
     return template.render(
         card_name=watch_card.one_line_summary,
-        duty_list=[(d.evolution, d.name) for d in watch_card.duties],
+        duty_list=[(d.evolution, d.name) for k, d in watch_card.duties.items()],
         skills=watch_card.all_skills,
         tasks=watch_card.tasks
     )

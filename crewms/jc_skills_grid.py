@@ -8,10 +8,12 @@ from openpyxl.worksheet import worksheet
 import openpyxl
 
 
-from typing import List
+from typing import List, Dict
 
 from sqlalchemy import create_engine, Column, Integer, String, Table, ForeignKey
 from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm.collections import attribute_mapped_collection
+
 engine = create_engine("sqlite:///:memory:")
 Session = sessionmaker(bind=engine)
 session = Session()
@@ -96,7 +98,9 @@ class WatchCard(Base):
     card_number = Column(String)
 
     tasks = relationship('Task', secondary=task_watchcard)  # type: List[Task]
-    duties = relationship('Duty', secondary=duty_watchcard)  # type: List[Duty]
+    duties = relationship('Duty',
+                          collection_class=attribute_mapped_collection('evolution'),
+                          secondary=duty_watchcard)  # type: Dict[str, Duty]
 
     @property
     def all_skills(self):
@@ -150,7 +154,7 @@ class WatchCard(Base):
         text.append("-"*78)
         text.append("    Duties")
         text.append("-"*78)
-        for duty in self.duties:
+        for duty in self.duties.values():
             text.append("{0!s:>15s}: {1!s:15s}".format(duty.evolution, duty.name))
         return "\n".join(text)
 
@@ -351,8 +355,10 @@ class SkillsGrid:
                         continue
                     for column in sheet.iter_cols(min_col=6, max_col=6 + len(evolutions) - 1,
                                                   min_row=cell.row, max_row=cell.row):
+
                         duty_cell = column[0]  # type: openpyxl.cell.cell
-                        watch_card.duties.append(Duty(name=duty_cell.value, evolution=evolutions[duty_cell.column]))
+                        watch_card.duties[evolutions[duty_cell.column]] = \
+                            Duty(name=duty_cell.value, evolution=evolutions[duty_cell.column])
                     watch_card.name = sheet.cell(cell.row, 3).value
         session.commit()
 
