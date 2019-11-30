@@ -8,7 +8,7 @@ from openpyxl.worksheet import worksheet
 import openpyxl
 
 
-from typing import List, Dict
+from typing import List, Dict, Any
 
 from sqlalchemy import create_engine, Column, Integer, String, Table, ForeignKey
 from sqlalchemy.orm import sessionmaker, relationship
@@ -347,13 +347,15 @@ class SkillsGrid:
                 cell = row[0]
                 if cell.value is not None:
                     watch_card = watchcard_by_number_and_bill(cell.value, wsb_name)  # type: WatchCard
-                    watch_cards_seen.add(watch_card)
                     if watch_card is None:
+                        print("Watch card %s on Watch and station bill %s not in skills grid." % (cell.value, wsb_name))
                         continue
+                    watch_cards_seen.add(watch_card)
+                    watch_card.manning_requirements = sheet.cell(row=cell.row, column=2).value
                     for column in sheet.iter_cols(min_col=6, max_col=6 + len(evolutions) - 1,
                                                   min_row=cell.row, max_row=cell.row):
 
-                        duty_cell = column[0]  # type: openpyxl.cell.cell
+                        duty_cell = column[0]  # type: worksheet.Cell
                         watch_card.duties[evolutions[duty_cell.column]] = \
                             Duty(name=duty_cell.value, evolution=evolutions[duty_cell.column])
                     watch_card.name = sheet.cell(cell.row, 3).value

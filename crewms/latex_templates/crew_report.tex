@@ -1,7 +1,7 @@
 
 % Overleaf Edit Link: https://www.overleaf.com/8439661152xhdjkrkbdxks
 
-\documentclass[10pt,a4paper,oneside]{extarticle}
+\documentclass[10pt,a4paper,oneside,landscape]{extarticle}
 % Note extarticle is used to allow the smaller 9pt default font. See
 % https://texblog.org/2012/08/29/changing-the-font-size-in-latex/
 % \usepackage[utf8]{fontenc}
@@ -51,15 +51,14 @@
     #1}}
 
 \newcommand{\thead}[1]{\textbf{#1}}
-
+%
 %  __        __   ___                   __       ___
 % |__)  /\  / _` |__     |     /\  \ / /  \ |  |  |
 % |    /~~\ \__> |___    |___ /~~\  |  \__/ \__/  |
-
-
+%
 \usepackage[
     %showframe,
-    left=9pc,
+    left=6pc,
     right=6pc,
     % hdivide={11pc, *, 6pc},
     top=5.5pc,
@@ -68,21 +67,6 @@
     marginparsep=1pc,
     reversemp=true,
     ignoremp=true]{geometry} % Adjust page margins
-
-% Create an environment for things to stretch the full width of the
-% page (without the heading margin)
-\newlength\afullwidth
-\setlength{\afullwidth}{210mm}
-\addtolength{\afullwidth}{-6pc}
-\addtolength{\afullwidth}{-6pc}
-
-\newlength{\sectionindent}
-\setlength{\sectionindent}{3pc}
-
-\newsavebox{\fwbox}
-\newenvironment{fullwidth}
-{\noindent\hspace{-\sectionindent}\begin{lrbox}{\fwbox}\begin{minipage}[t]{\afullwidth}}
-{\end{minipage}\end{lrbox}\usebox{\fwbox}}
 
 \setlength{\parskip}{6pt} % Set space between paragraphs
 \setlength{\parindent}{0pt}
@@ -99,9 +83,9 @@
 \usepackage{fancyhdr} % Required to customize headers
 \pagestyle{fancy}\fancyhf{} % Use the custom header specified below
 \renewcommand{\headrulewidth}{0pt} % Remove the default horizontal rule under the header
-\lhead{\hspace{-\sectionindent}James Craig Training System}
+\lhead{James Craig Training System}
 \rhead{}
-\lfoot{\hspace{-\sectionindent} \footnotesize ver \today~\currenttime}
+\lfoot{\footnotesize ver \today~\currenttime}
 \rfoot{\footnotesize{}Page \thepage{} of \pageref{LastPage}}
 
 %
@@ -147,7 +131,7 @@
 \titleformat{\section}
   {\vspace{-\parskip}%
    \large\opensansblack\centering}
-  {\hspace{-\sectionindent}}{0pt}{\color{secondcolor}\MakeUppercase}
+  {}{0pt}{\color{secondcolor}\MakeUppercase}
 \titlespacing*{\section}{0pt}{24pt}{6pt}
 
 %\newcommand{\secformat}[1]{\MakeUppercase{{#1}}}
@@ -157,10 +141,10 @@
    %\footnotesize
     \vspace{-\parskip}
     \opensansblack}
-  {}{1ex}{\color{secondcolor}}
+  {}{0pt}{\color{secondcolor}}
 
 \titlespacing{\subsection}
-  {-\sectionindent}{12pt}{3pt}
+  {0pt}{12pt}{3pt}
 
 %% Sub Sub Section
 \titleformat{\subsubsection}[hang]

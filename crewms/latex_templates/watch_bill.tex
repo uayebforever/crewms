@@ -1,18 +1,25 @@
+{
+\small
 \begin{tabular}
 {lll
 %{ for duty in duties }%
 	l
 %{ endfor }%
 }
-\footnotesize
+
 \thead{Card} & \thead{Position} & \thead{Rank} 
+	& \multicolumn{\VAR{duties|length}}{c}{\thead{Stations}}
+\\
+
+\thead{No.} & \thead{} & \thead{} 
 %{ for duty in duties }%
 	& \thead{\VAR{duty}}
 %{ endfor }% 
 \\
 
+
 %{ for card in watch_cards }%
-	\VAR{card.card_number} & \VAR{card.name} &  
+	\VAR{card.card_number} & \VAR{card.name} &  \VAR{card.manning_requirements}
 	%{ for duty in duties }%
 	& \VAR{card.duties[duty].name} 
 	%{ endfor }% 
@@ -20,3 +27,4 @@
 %{ endfor }%
 
 \end{tabular}
+}
