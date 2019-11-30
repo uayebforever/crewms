@@ -1,10 +1,11 @@
 from collections import defaultdict
 
-import pandas as pd
-import sqlalchemy
+# import pandas as pd
+# import sqlalchemy
 
 import openpyxl
 from openpyxl.worksheet import worksheet
+import openpyxl
 
 
 from sqlalchemy import create_engine, Column, Integer, String, Table, ForeignKey
@@ -23,6 +24,11 @@ task_skill = Table("task_skill", Base.metadata,
 
 task_watchcard = Table("task_watchcard", Base.metadata,
                        Column('task_id', ForeignKey('tasks.id'), primary_key=True),
+                       Column('watchcard_id', ForeignKey("watchcards.id"), primary_key=True)
+                       )
+
+duty_watchcard = Table("duty_watchcard", Base.metadata,
+                       Column('duty_id', ForeignKey('duties.id'), primary_key=True),
                        Column('watchcard_id', ForeignKey("watchcards.id"), primary_key=True)
                        )
 
@@ -70,6 +76,15 @@ class Skill(Base):
     def __repr__(self):
         return "<Skill(%s - %s)>" % (self.category, self.name)
 
+class Duty(Base):
+    __tablename__ = "duties"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    evolution = Column(String)
+    watch_cards = relationship('WatchCard', secondary=duty_watchcard)
+
+
 class WatchCard(Base):
     __tablename__ = "watchcards"
 
@@ -79,6 +94,7 @@ class WatchCard(Base):
     card_number = Column(String)
 
     tasks = relationship('Task', secondary=task_watchcard)
+    duties = relationship('Duty', secondary=duty_watchcard)
 
     @property
     def required_rank(self):
@@ -102,6 +118,7 @@ class WatchCard(Base):
         text = []
         text.append("="*78)
         text.append(self.one_line_summary)
+        text.append(self.evolutions_summary)
         text.append(self.tasks_summary)
         text.append(self.skills_summary)
         return "\n".join(text)
@@ -114,6 +131,16 @@ class WatchCard(Base):
         text.append("-"*78)
         for task in self.tasks:
             text.append("   " + task.one_line_summary)
+        return "\n".join(text)
+
+    @property
+    def evolutions_summary(self):
+        text = []
+        text.append("-"*78)
+        text.append("    Duties")
+        text.append("-"*78)
+        for duty in self.duties:
+            text.append("{0!s:>15s}: {1!s:15s}".format(duty.evolution, duty.name))
         return "\n".join(text)
 
     @property
@@ -168,6 +195,9 @@ class SkillsGrid:
         assert "Skills Grid" in self.workbook.sheetnames
         self.skills_grid_sheet = self.workbook["Skills Grid"]  # type: worksheet.Worksheet
 
+        assert "WnS Bill" in self.workbook.sheetnames
+        self.wns_bill = self.workbook["WnS Bill"]  # type: worksheet.Worksheet
+
         self.defined_names = self.workbook.defined_names
 
     @property
@@ -184,7 +214,7 @@ class SkillsGrid:
 
 
     def watchcards_for_bill(self, bill):
-        return session.query(WatchCard).filter(WatchCard.bill == bill).all()
+        return session.query(WatchCard).filter(WatchCard.bill == bill).order_by(WatchCard.card_number).all()
 
     def _get_cells_for_reference(self, reference_name):
 
@@ -208,7 +238,8 @@ class SkillsGrid:
                                                    max_col=bounding_box.max_col, max_row=4):
             cat, evol, skill, rank = column
 
-            task = Task(id=cat.column, category=str(tl.last_if_none("category", cat.value)),
+            task = Task(id=cat.column,
+                        category=str(tl.last_if_none("category", cat.value)),
                         evolution=str(tl.last_if_none("evolution", evol.value)),
                         name=str(tl.last_if_none("name", skill.value)),
                         rank=rank.value)
@@ -246,6 +277,8 @@ class SkillsGrid:
                     skill.tasks.append(task)
 
 
+        session.commit()
+
         # Watch and Station Bill Assignments
 
         wsb_region = dict()
@@ -265,19 +298,60 @@ class SkillsGrid:
         watchcard_by_number_and_bill = lambda num, bill: session.query(WatchCard).filter(
             WatchCard.card_number == num, WatchCard.bill == bill).one_or_none()
 
-
         for wsb_name in wsb_locations:
             for column in self.skills_grid_sheet.iter_cols(min_col=wsb_region["header col"] + 1, min_row=wsb_locations[wsb_name],
                                                        max_col=bounding_box.max_col, max_row=wsb_locations[wsb_name]):
                 cell = column[0]
                 if cell.value is not None:
-                    watch_card = watchcard_by_number_and_bill(cell.value, wsb_name)
-                    if watch_card is None:
-                        watch_card = WatchCard(bill=wsb_name, card_number=cell.value)
-                        session.add(watch_card)
+                    for card_id in cell.value.split(","):
+                        watch_card = watchcard_by_number_and_bill(card_id, wsb_name)
+                        if watch_card is None:
+                            watch_card = WatchCard(bill=wsb_name, card_number=card_id)
+                            session.add(watch_card)
 
-                    # print("Creating card %s" % cell.value)
-                    watch_card.tasks.append(task_by_id(cell.column))
+                        # print("Creating card %s" % cell.value)
+                        watch_card.tasks.append(task_by_id(cell.column))
+
+        session.commit()
+
+        # Get Watch and Station Bill Duties
+
+        wns_bill_sheet_locations = dict()
+        for wsb_name in wsb_locations:
+            for column in self.wns_bill.iter_cols(min_col=1,  min_row=1,
+                                                  max_col=50, max_row=1):
+                cell = column[0]
+                if cell.value == wsb_name:
+                    wns_bill_sheet_locations[wsb_name] = cell.column
+                    break
+
+        # Iterate over watch bills
+        for wsb_name in wsb_locations:
+            start_col = wns_bill_sheet_locations[wsb_name]
+
+            # Collect evolution names
+            evolutions = dict()  # type: Dict[int, str]
+            for column in self.wns_bill.iter_cols(min_col=start_col + 2, max_col=start_col+10,
+                                                  min_row=4, max_row=4):
+                cell = column[0]
+                if cell.value != "!":
+                    evolutions[cell.column] = cell.value
+                else:
+                    break
+
+            # Iterate over watch cards
+            for row in self.wns_bill.iter_rows(min_row=5, max_row=80,
+                                               min_col=1, max_col=1):
+                cell = row[0]
+                if cell.value is not None:
+                    watch_card = watchcard_by_number_and_bill(cell.value, wsb_name)  # type: WatchCard
+                    if watch_card is None:
+                        continue
+                    for column in self.wns_bill.iter_cols(min_col=start_col + 2, max_col=start_col + len(evolutions),
+                                                          min_row=cell.row, max_row=cell.row):
+                        duty_cell = column[0]  # type: openpyxl.cell.cell
+                        watch_card.duties.append(Duty(name=duty_cell.value, evolution=evolutions[duty_cell.column]))
+                    watch_card.name = self.wns_bill.cell(cell.row, 3).value
 
 
         session.commit()
