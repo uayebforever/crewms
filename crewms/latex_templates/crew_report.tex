@@ -7,15 +7,7 @@
 % \usepackage[utf8]{fontenc}
 
 
-% \usepackage{fontspec}% font selecting commands
-% \usepackage{xunicode}% unicode character macros
-% \usepackage{xltxtra} % a few fixes and extras
-
-% % Define standard fonts
-% \setmainfont{Open Sans}
-
 \usepackage{array}
-
 \usepackage{hyperref}
 
 \hypersetup{
@@ -40,6 +32,25 @@
 \usepackage{marginnote} % Required for margin notes
 
 \usepackage[yyyymmdd,hhmmss]{datetime}
+
+\usepackage{enumitem}
+% \setlist{noitemsep}
+\setlist{nosep}
+%\setlist[1]{\labelindent=\parindent} % < Usually a good idea
+\setlist[itemize]{leftmargin=1pc}
+\setlist[description]{leftmargin=1pc}
+%\setlist[itemize,1]{label=$\triangleleft$}
+\setlist[enumerate]{labelsep=*, leftmargin=1.5pc}
+
+\usepackage{xspace}
+% \usepackage{indentfirst}
+% \usepackage{hanging}
+
+\newcommand{\link}[1]{\href{http://#1}{\small
+    {\footnotesize\color{fade}\awesomesolid link}
+    #1}}
+
+\newcommand{\th}[1]{\textbf{#1}}
 
 %  __        __   ___                   __       ___
 % |__)  /\  / _` |__     |     /\  \ / /  \ |  |  |
@@ -77,44 +88,27 @@
 \setlength{\parindent}{0pt}
 %\newcommand{\tab}{\hspace*{4em}} % Defines a new command for some horizontal space
 
-\usepackage{enumitem}
-% \setlist{noitemsep}
-\setlist{nosep}
-%\setlist[1]{\labelindent=\parindent} % < Usually a good idea
-\setlist[itemize]{leftmargin=1pc}
-\setlist[description]{leftmargin=1pc}
-%\setlist[itemize,1]{label=$\triangleleft$}
-\setlist[enumerate]{labelsep=*, leftmargin=1.5pc}
-
-\usepackage{xspace}
-% \usepackage{indentfirst}
-% \usepackage{hanging}
-
 \usepackage{multicol}
 
+%
 %       ___       __   ___  __                __      ___  __   __  ___  ___  __
 % |__| |__   /\  |  \ |__  |__)     /\  |\ | |  \    |__  /  \ /  \  |  |__  |__)
 % |  | |___ /~~\ |__/ |___ |  \    /~~\ | \| |__/    |    \__/ \__/  |  |___ |  \
-
-
+%
 \newcommand{\currenthead}{\relax}
 \usepackage{fancyhdr} % Required to customize headers
-% \setlength{\headheight}{80pt} % Increase the size of the header to accommodate meta-information
 \pagestyle{fancy}\fancyhf{} % Use the custom header specified below
 \renewcommand{\headrulewidth}{0pt} % Remove the default horizontal rule under the header
-\lhead{\hspace{-\sectionindent}James Craig Committee}
-\rhead{Meeting Agenda, 9 July 2019}
+\lhead{\hspace{-\sectionindent}James Craig Training System}
+\rhead{}
 \lfoot{\hspace{-\sectionindent} \footnotesize ver \today~\currenttime}
 \rfoot{\footnotesize{}Page \thepage{} of \pageref{LastPage}}
 
-
-
-
-
+%
 %  ___  __       ___  __
 % |__  /  \ |\ |  |  /__`
 % |    \__/ | \|  |  .__/
-
+%
 \usepackage{mathspec}
 
 \setallmainfonts(Digits,Latin)
@@ -137,11 +131,11 @@
    BoldFont={*}]{Open Sans}{\MakeUppercase{{#1}}}}}
 
 \setmonofont[Ligatures=TeX]{Source Code Pro Light}
-
+%
 %       ___       __          __   __
 % |__| |__   /\  |  \ | |\ | / _` /__`
 % |  | |___ /~~\ |__/ | | \| \__> .__/
-
+%
 % Change sub-section numbering to be continuous
 % From https://tex.stackexchange.com/questions/40067/numbering-sections-with-sequential-integers
 \usepackage{chngcntr}% http://ctan.org/pkg/chngcntr
@@ -149,6 +143,7 @@
 
 \usepackage[bottomtitles]{titlesec}
 
+%% Section
 \titleformat{\section}
   {\vspace{-\parskip}%
    \large\opensansblack\centering}
@@ -156,19 +151,18 @@
 \titlespacing*{\section}{0pt}{24pt}{6pt}
 
 %\newcommand{\secformat}[1]{\MakeUppercase{{#1}}}
+%% Sub Section
 \titleformat{\subsection}[hang]
   {%\normalfont
    %\footnotesize
     \vspace{-\parskip}
     \opensansblack}
   {}{1ex}{\color{secondcolor}}
+
 \titlespacing{\subsection}
   {-\sectionindent}{12pt}{3pt}
 
-% \titleformat{\subsubsection}[runin]
-%   {\vspace{-\parskip}\opensansblack}
-%   {\thesubsubsection}{1ex}{}
-
+%% Sub Sub Section
 \titleformat{\subsubsection}[hang]
     {\vspace{-\parskip}\opensansblack}
     {}
@@ -176,15 +170,20 @@
     {}
     []
 \titlespacing*{\subsubsection}{0pt}{6pt}{0pt}
-
-\newcommand{\itemtime}[1]{\marginpar{\opensansblack\footnotesize{#1}}}
-\newcommand{\link}[1]{\href{http://#1}{\small
-    {\footnotesize\color{fade}\awesomesolid link}
-    #1}}
-
+%
+%  __   __   __              ___      ___
+% |  \ /  \ /  ` |  |  |\/| |__  |\ |  |
+% |__/ \__/ \__, \__/  |  | |___ | \|  |
+%
 \begin{document}
 \raggedbottom
 
+\setcounter{tocdepth}{2}
+\tableofcontents
+
+
 \VAR{content}
+
+\label{LastPage}
 
 \end{document}
