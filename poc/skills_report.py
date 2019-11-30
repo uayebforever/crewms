@@ -1,12 +1,19 @@
 import os
+import re
 import jinja2
+import jinja_vanish
 
 from crewms.jc_skills_grid import *
 import crewms
 
+@jinja_vanish.markup_escape_func
+def latex_escape(text):
+    result = text
+    if isinstance(text, str):
+        result = re.sub(r"&", r"\&", result)
+    return result
 
-
-latex_jinja_env = jinja2.Environment(
+latex_jinja_env = jinja_vanish.DynAutoEscapeEnvironment(
     block_start_string='%{',
     block_end_string='}%',
     variable_start_string='\VAR{',
@@ -16,7 +23,8 @@ latex_jinja_env = jinja2.Environment(
     # line_statement_prefix='%%',
     line_comment_prefix='%#',
     trim_blocks=True,
-    autoescape=False,
+    autoescape=True,
+    escape_func=latex_escape,
     loader=jinja2.FileSystemLoader(os.path.join(os.path.dirname(crewms.__file__), 'latex_templates')))
 
 
