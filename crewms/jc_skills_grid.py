@@ -238,16 +238,22 @@ class SkillsGrid:
 
         return cells
 
+
+
     def reload_data(self):
 
-        bounding_box = worksheet.CellRange(self.skills_grid_sheet.calculate_dimension())
+        self.bounding_box = worksheet.CellRange(self.skills_grid_sheet.calculate_dimension())
+        self.reload_tasks()
+        self.reload_skills()
+        wsb_locations = self.reload_watch_and_station_bill_assignments()
+        self.get_watch_and_station_bill_duties(wsb_locations)
 
+
+    def reload_tasks(self):
         # Tasks
-
         tl = LastNone()
-
         for column in self.skills_grid_sheet.iter_cols(min_col=5, min_row=1,
-                                                   max_col=bounding_box.max_col, max_row=4):
+                                                       max_col=self.bounding_box.max_col, max_row=4):
             cat, evol, skill, rank = column
 
             task = Task(id=cat.column,
@@ -258,13 +264,12 @@ class SkillsGrid:
             session.add(
                 task
             )
-
         session.commit()
 
+    def reload_skills(self):
         # Skills
-
         for row in self.skills_grid_sheet.iter_rows(min_col=1, min_row=14,
-                                                    max_col=3, max_row=bounding_box.max_row):
+                                                    max_col=3, max_row=self.bounding_box.max_row):
             category, skill, level = row
             session.add(
                 Skill(id=category.row,
@@ -272,47 +277,36 @@ class SkillsGrid:
                       name=skill.value,
                       level=level.value)
             )
-
         session.commit()
-
-        skill_by_id = lambda id: session.query(Skill).filter(Skill.id == id).one()
-        task_by_id = lambda id: session.query(Task).filter(Task.id == id).one()
-
-
         for row in self.skills_grid_sheet.iter_rows(min_col=5, min_row=14,
-                                                    max_col=bounding_box.max_col, max_row=bounding_box.max_row):
+                                                    max_col=self.bounding_box.max_col, max_row=self.bounding_box.max_row):
             for cell in row:
                 if cell.value == "Y":
                     # Create relationship
                     skill = skill_by_id(cell.row)
                     task = task_by_id(cell.column)
                     skill.tasks.append(task)
-
-
         session.commit()
+        return task_by_id
 
+    def reload_watch_and_station_bill_assignments(self):
         # Watch and Station Bill Assignments
-
         wsb_region = dict()
         wsb_region["min row"] = self._get_cells_for_reference("BillAssignmentRef")[0].row
         wsb_region["max row"] = self._get_cells_for_reference("SkillsRef")[0].row - 1
         wsb_region["header col"] = self._get_cells_for_reference("BillAssignmentRef")[0].column
-
         wsb_locations = dict()
         for row in self.skills_grid_sheet.iter_rows(
             min_row=wsb_region["min row"], min_col=wsb_region["header col"],
             max_row=wsb_region["max row"], max_col=wsb_region["header col"]):
             if row[0].value.startswith("WSB Task Assignment:"):
-                wsb_locations[row[0].value[len("WSB Task Assignment:")+1:]] = row[0].row
-
+                wsb_locations[row[0].value[len("WSB Task Assignment:") + 1:]] = row[0].row
         # print(wsb_locations)
-
-        watchcard_by_number_and_bill = lambda num, bill: session.query(WatchCard).filter(
-            WatchCard.card_number == num, WatchCard.bill == bill).one_or_none()
-
         for wsb_name in wsb_locations:
-            for column in self.skills_grid_sheet.iter_cols(min_col=wsb_region["header col"] + 1, min_row=wsb_locations[wsb_name],
-                                                       max_col=bounding_box.max_col, max_row=wsb_locations[wsb_name]):
+            for column in self.skills_grid_sheet.iter_cols(min_col=wsb_region["header col"] + 1,
+                                                           min_row=wsb_locations[wsb_name],
+                                                           max_col=self.bounding_box.max_col,
+                                                           max_row=wsb_locations[wsb_name]):
                 cell = column[0]
                 if cell.value is not None:
                     for card_id in cell.value.split(","):
@@ -323,27 +317,25 @@ class SkillsGrid:
 
                         # print("Creating card %s" % cell.value)
                         watch_card.tasks.append(task_by_id(cell.column))
-
         session.commit()
+        return wsb_locations
 
-        # Get Watch and Station Bill Duties
-
+    def get_watch_and_station_bill_duties(self, wsb_locations):
         wns_bill_sheet_locations = dict()
         for wsb_name in wsb_locations:
-            for column in self.wns_bill.iter_cols(min_col=1,  min_row=1,
+            for column in self.wns_bill.iter_cols(min_col=1, min_row=1,
                                                   max_col=50, max_row=1):
                 cell = column[0]
                 if cell.value == wsb_name:
                     wns_bill_sheet_locations[wsb_name] = cell.column
                     break
-
         # Iterate over watch bills
         for wsb_name in wsb_locations:
             start_col = wns_bill_sheet_locations[wsb_name]
 
             # Collect evolution names
             evolutions = dict()  # type: Dict[int, str]
-            for column in self.wns_bill.iter_cols(min_col=start_col + 2, max_col=start_col+10,
+            for column in self.wns_bill.iter_cols(min_col=start_col + 2, max_col=start_col + 10,
                                                   min_row=4, max_row=4):
                 cell = column[0]
                 if cell.value != "!":
@@ -364,9 +356,8 @@ class SkillsGrid:
                         duty_cell = column[0]  # type: openpyxl.cell.cell
                         watch_card.duties.append(Duty(name=duty_cell.value, evolution=evolutions[duty_cell.column]))
                     watch_card.name = self.wns_bill.cell(cell.row, 3).value
-
-
         session.commit()
+
 
     def skills_for_task_by_id(self, id):
         # assert id in self.tasks.index, "Unknown task"
@@ -394,3 +385,16 @@ class SkillsGrid:
                 report.append("   " + str(task))
 
         return "\n".join(report)
+
+def watchcard_by_number_and_bill(num, bill):
+    # type: (str, str) -> WatchCard
+    return session.query(WatchCard).filter(
+        WatchCard.card_number == num, WatchCard.bill == bill).one_or_none()
+
+def skill_by_id(id):
+    # type: (int) -> Skill
+    return session.query(Skill).filter(Skill.id == id).one()
+
+def task_by_id(id):
+    # type: (int) -> Task
+    return session.query(Task).filter(Task.id == id).one()
