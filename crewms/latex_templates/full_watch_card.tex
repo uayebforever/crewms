@@ -1,23 +1,49 @@
-\subsection{\VAR{card_name}}
+\vspace{12pt}
+%\begin{minipage}{\linewidth}
 
+\needspace{6\baselineskip}
+
+
+\subsection{Watch Card Summary: \VAR{card.card_number} --- \VAR{card.name}}
+\label{card:\VAR{card.card_number}}
+
+{\small
+    \VAR{ "\\emph{This position required to meet minimum manning}" if card.manning_requirements }
+}
 
 \subsubsection{Duties}
 
-\begin{tabular}{ll}
-	%{for evolution, duty in duty_list}%
-		\VAR{evolution} & \VAR{duty} \\
+{\small
+\begin{tabular}{rl}
+	%{for evolution, duty in card.duties.items()}%
+		\textbf{\VAR{evolution}} & \VAR{duty.name} \\
 	%{endfor}%
 \end{tabular}
+}
 
 \subsubsection{Tasks Expected}
 
-%{for task in tasks}%
-	\VAR{task.one_line_summary}\par
+{\small
+\begin{itemize}
+%{for task in card.tasks}%
+	\item \VAR{task.one_line_summary}
+%{ else }%
+	\item \emph{No tasks listed.}
 %{endfor}%
+\end{itemize}
+}
 
 
 \subsubsection{Skills Required}
 
-%{for skill in skills}%
-	\VAR{skill.one_line_summary}\par
+{\small
+\begin{itemize}
+%{for skill in card.all_skills}%
+	\item \VAR{skill.one_line_summary}
+%{ else }%
+	\item \emph{No skills listed.}
 %{endfor}%
+\end{itemize}
+}
+
+%\end{minipage}

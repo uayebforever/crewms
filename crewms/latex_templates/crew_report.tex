@@ -8,18 +8,12 @@
 
 
 \usepackage{array}
-\usepackage{hyperref}
-
-\hypersetup{
-  colorlinks = false,
-  urlcolor = {highlight},
-  hidelinks
-}
 
 \usepackage{xcolor}
-\definecolor{secondcolor}{rgb}{0.02, 0.24, 0.60}
-\definecolor{highlight}{rgb}{0.34, 0., 0.68}
-\definecolor{fade}{rgb}{0.46, 0.63, 0.87}
+\definecolor{secondcolor}{rgb}{0.30, 0.13, 0.70}
+\definecolor{highlight}{rgb}{0.85, 0.79, 1.00}
+\definecolor{fade}{rgb}{0.53, 0.31, 0.99}
+\usepackage{colortbl}
 
 \usepackage{longtable}
 
@@ -74,6 +68,8 @@
 
 \usepackage{multicol}
 
+\usepackage{needspace}
+
 %
 %       ___       __   ___  __                __      ___  __   __  ___  ___  __
 % |__| |__   /\  |  \ |__  |__)     /\  |\ | |  \    |__  /  \ /  \  |  |__  |__)
@@ -84,7 +80,7 @@
 \pagestyle{fancy}\fancyhf{} % Use the custom header specified below
 \renewcommand{\headrulewidth}{0pt} % Remove the default horizontal rule under the header
 \lhead{James Craig Training System}
-\rhead{}
+\rhead{\leftmark}
 \lfoot{\footnotesize ver \today~\currenttime}
 \rfoot{\footnotesize{}Page \thepage{} of \pageref{LastPage}}
 
@@ -147,17 +143,92 @@
     {}
     []
 \titlespacing*{\subsubsection}{0pt}{6pt}{0pt}
+
+%  __   __       ___  ___      ___  __     ___       __        ___
+% /  ` /  \ |\ |  |  |__  |\ |  |  /__`     |   /\  |__) |    |__
+% \__, \__/ | \|  |  |___ | \|  |  .__/     |  /~~\ |__) |___ |___
+%
+\usepackage{titletoc}
+
+\contentsmargin{2.55em}
+\titlecontents{lsubsection}
+    [1em]% Left
+    {}% Above Code
+    {}% Numbered entry format
+    {}% Numberless entry format
+    {.}% Filler page format
+    {}% Below Code
+\titlecontents{lsubsubsection}
+    [2.5em]% Left
+    {\addvspace{-0.4\baselineskip}}% Above Code
+    {}% Numbered entry format
+    {}% Numberless entry format
+    {\titlerule*[.6pc]{\tiny\textbullet} \thecontentspage}% Filler page format
+    {}% Below Code
+\titlecontents*{lparagraph}[3.5em]
+    {\addvspace{-0.4\baselineskip}}% Above code
+    {\scriptsize}% Numbered entry format
+    {\scriptsize}% Numberless entry format
+    {, }% Filler page format
+
 %
 %  __   __   __              ___      ___
 % |  \ /  \ /  ` |  |  |\/| |__  |\ |  |
 % |__/ \__/ \__, \__/  |  | |___ | \|  |
 %
+% NOTE: Hyperref must appear after titletoc!!!
+\usepackage{hyperref}
+
+\hypersetup{
+  colorlinks = false,
+  urlcolor = {highlight},
+  hidelinks
+}
 \begin{document}
 \raggedbottom
 
-\setcounter{tocdepth}{2}
-\tableofcontents
+\begin{multicols}{2}
+[
+{\hfill \Large \bfseries \color{secondcolor} \MakeUppercase{Crew skills assignment report}\hfill}
+]
+\raggedcolumns
 
+This report summarises the skills required for each duty holder in a watch and station bill. 
+
+Legislation and our SMS requires that each crew member is trained, assessed and qualified in all of the tasks they are asked to perform. 
+
+To meet this requirement, it is necessary to identify all regular tasks on board, and the skills required to carry out those tasks. This is achieved through a \emph{Skills Grid}.
+
+\subsection*{Skills Grid}
+
+The skills grid lists on one axis all of the tasks that need to be performed on the ship. These are organised by area (sail handling, special sea duties, etc), and then into specific evolutions, and then either to each role that evolution requires, or to various parts of a complex role. The exact granularity of the final category is not important, as long as we capture all of the skills needed, and the granularity is sufficient to separate tasks that we will expect to be performed by crew of different rank.
+
+On the other axis, the Skills grid lists all of the actual skills required on the ship. These can and should be quite atomic. "Acknowledge an order", or "use a radio to communicate" are good examples. These are also grouped together to make them easier to find and manage, but these groupings are useful more for organising the skills for teaching than for the initial population of the grid.
+
+\subsection*{Minimum manning}
+
+As part of the Crew Risk Assessment in the SMS, the minimum viable crew for various emergency situations were considered, and what role each member would play. From this analysis, it is possible to construct a Watch and Station Bill for each different kind of trip. 
+
+\subsection*{Watch and Station Bill}
+
+Currently, the ship largely uses fixed or proforma watch and station bills. The tasks have already been allocated amongst positions, which are represented by cards that are handed to each crew member at the start of the trip. This approach provides little flexibility to adapt assignments where crew skills do not map neatly to the fixed positions, but makes it easy to quickly build a valid watch and station bill if the necessary skills are present.
+
+\subsection*{Duties, tasks and skills}
+
+The (emergency) duties of each position in the watch and station bill are the top of a hierarchical pyramid. Duties are made up of individual tasks. Tasks represent something a single person can be doing at one time, so an evolution involving many crew members will have a task for each crew member. Tasks in turn are made up of skills. Skills represent basic competencies on the ship. 
+
+Skills are also the atomic elements of our training program (and are roughly the individual sign-offs in our existing system, though some were bigger than others). For simplicity, skills are assumed to include items of knowledge and (if necessary) demonstrations of experience. 
+
+\subsection*{This Report}
+
+This report is based on a skills grid and a set of fixed watch and station bills based on the Crew Risk Assessment. For each trip type, the fixed watch and station bill is given first, followed by a detailed listing of the duties, tasks, and skills required of each crew member. The detailed listing is presented for crew member as a Crew Card of sorts. The listed duties are made up of tasks, and those tasks are made up of skills.
+
+
+\end{multicols}
+
+
+% \setcounter{tocdepth}{1}
+% \tableofcontents
 
 \VAR{content|safe}
 

@@ -8,7 +8,7 @@ from openpyxl.worksheet import worksheet
 import openpyxl
 
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Set
 
 from sqlalchemy import create_engine, Column, Integer, String, Table, ForeignKey
 from sqlalchemy.orm import sessionmaker, relationship
@@ -225,6 +225,14 @@ class SkillsGrid:
         return session.query(Task).all()
 
     @property
+    def evolutions(self):
+        return set(t.evolution for t in session.query(Task).all())
+
+    @property
+    def task_categories(self):
+        return set(t.category for t in session.query(Task).all())
+
+    @property
     def watchcards(self):
         return session.query(WatchCard).all()
 
@@ -256,7 +264,6 @@ class SkillsGrid:
         for bill in generic_tasks:
             for crew_category, task in generic_tasks[bill].items():
                 for card in all_crew_cards_for_category_and_bill(crew_category, bill):
-                    print("Hi", card)
                     card.tasks.append(task)
         session.commit()
 
@@ -360,7 +367,7 @@ class SkillsGrid:
 
             current_crew_category = None
 
-            print(evolutions)
+            # print(evolutions)
             # Iterate over watch cards
             watch_cards_seen = set()
             for row in sheet.iter_rows(min_row=5, max_row=sheet_bounds.max_row,
