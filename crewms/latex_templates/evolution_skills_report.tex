@@ -1,4 +1,4 @@
-\subsubsection{ \VAR{ evolution } }
+\subsubsection{\VAR{ evolution }}
 
 \begin{multicols}{2}
 
@@ -10,18 +10,18 @@
     	\item [General Skills] \hfill
         \begin{itemize}
         %{ for skill in general_skills }%
-            \item \VAR{ skill.name } \sc{\VAR{ skill.category }, rank \VAR{ skill.level|jc_rank }}
+            \item \VAR{ skill.name }---\sc{\VAR{ skill.category }, \VAR{ skill.level|jc_rank }}
         %{ endfor }%
         \end{itemize}
     %{ endif }%
-    %{ for task in tasks }%
+    %{ for task in tasks|sort(attribute='id') }%
     	\phantomsection\addcontentsline{toc}{paragraph}{\VAR{ task.name }}
     	\needspace{2\baselineskip}
         \item [\VAR{ task.name }] \sc{\VAR{ task.rank|jc_rank }}
         \begin{itemize}
         %{ for skill in task.skills }%
             %{ if skill not in general_skills }%
-	            \item \VAR{ skill.name } \sc{\VAR{ skill.category }, rank \VAR{ skill.level|jc_rank }}
+	            \item \VAR{ skill.name }---\sc{\VAR{ skill.category }, \VAR{ skill.level|jc_rank }}
 	        %{ endif }%
         %{ else }%
             \item \emph{No skills assigned}

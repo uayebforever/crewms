@@ -256,6 +256,7 @@ class SkillsGrid:
     def reload_data(self):
 
         self.bounding_box = worksheet.CellRange(self.skills_grid_sheet.calculate_dimension())
+        # self.bounding_box = worksheet.CellRange(min_row=0, min_col=0, max_col=)
         self.reload_tasks()
         self.reload_skills()
         generic_tasks = self.reload_watch_and_station_bill_assignments()
@@ -272,12 +273,15 @@ class SkillsGrid:
         tl = LastNone()
         for column in self.skills_grid_sheet.iter_cols(min_col=5, min_row=1,
                                                        max_col=self.bounding_box.max_col, max_row=4):
-            cat, evol, skill, rank = column
+            cat, evol, name, rank = column
+
+            if name.value is None:
+                continue
 
             task = Task(id=cat.column,
                         category=str(tl.last_if_none("category", cat.value)),
                         evolution=str(tl.last_if_none("evolution", evol.value)),
-                        name=str(tl.last_if_none("name", skill.value)),
+                        name=str(tl.last_if_none("name", name.value)),
                         rank=rank.value)
             session.add(
                 task
@@ -286,7 +290,8 @@ class SkillsGrid:
 
     def reload_skills(self):
         # Skills
-        for row in self.skills_grid_sheet.iter_rows(min_col=1, min_row=14,
+        # TODO: Fix this to use "SkillsRef" reference.
+        for row in self.skills_grid_sheet.iter_rows(min_col=1, min_row=13,
                                                     max_col=3, max_row=self.bounding_box.max_row):
             category, skill, level = row
             session.add(

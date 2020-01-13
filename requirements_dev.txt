@@ -9,7 +9,7 @@ Sphinx
 twine
 
 
-openpyxl
+openpyxl==3.0.3
 sqlalchemy
 pandas
 jinja2

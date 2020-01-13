@@ -103,17 +103,18 @@ def find_common_skills(task_list):
                 skills = set(task.skills)
     return skills
 
-def single_evolution_skills_report(evolution_name):
+def single_evolution_skills_report(category_name, evolution_name):
+    assert category_name in skills_grid.task_categories
     assert evolution_name in skills_grid.evolutions
 
     tasks = [task
              for task in skills_grid.tasks
-             if task.evolution == evolution_name]
+             if task.evolution == evolution_name and task.category == category_name]
 
     # Skills in all tasks of this evolution:
     general_skills = find_common_skills(tasks)
 
-    tasks_as_dict = [dict(name=task.name, rank=task.rank, skills=task.skills)
+    tasks_as_dict = [dict(id=task.id, name=task.name, rank=task.rank, skills=task.skills)
                      for task in tasks]
 
     # Remove general skills from individual tasks
@@ -160,8 +161,9 @@ def evolution_skills_report():
 
     for category in skills_grid.task_categories:
         content.append(r"\subsection{" + jinja2.escape(category) + "}")
-        for evolution in set([t.evolution for t in skills_grid.tasks if t.category == category]):
-            content.append(single_evolution_skills_report(evolution))
+        evolutions_in_category = [t.evolution for t in skills_grid.tasks if t.category == category]
+        for evolution in set(evolutions_in_category):
+            content.append(single_evolution_skills_report(category, evolution))
 
     evolution_section = latex_jinja_env.get_template("evolution_section.tex")
 
