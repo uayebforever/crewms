@@ -161,8 +161,13 @@ def evolution_skills_report():
 
     for category in skills_grid.task_categories:
         content.append(r"\subsection{" + jinja2.escape(category) + "}")
-        evolutions_in_category = [t.evolution for t in skills_grid.tasks if t.category == category]
-        for evolution in set(evolutions_in_category):
+        evolutions_in_category = [row[0] for row in
+                                  session.execute(
+                                      select([Task.__table__.c.evolution])
+                                            .where(Task.__table__.c.category == category)
+                                            .order_by(Task.__table__.c.id).distinct()
+                                  )]
+        for evolution in evolutions_in_category:
             content.append(single_evolution_skills_report(category, evolution))
 
     evolution_section = latex_jinja_env.get_template("evolution_section.tex")

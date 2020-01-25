@@ -10,7 +10,7 @@ import openpyxl
 
 from typing import List, Dict, Any, Set
 
-from sqlalchemy import create_engine, Column, Integer, String, Table, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Table, ForeignKey, select
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
@@ -230,7 +230,8 @@ class SkillsGrid:
 
     @property
     def task_categories(self):
-        return set(t.category for t in session.query(Task).all())
+        return [row[0] for row in session.execute(
+            select([Task.__table__.c.category]).order_by(Task.__table__.c.id).distinct())]
 
     @property
     def watchcards(self):
