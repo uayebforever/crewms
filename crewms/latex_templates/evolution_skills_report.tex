@@ -1,34 +1,36 @@
+\needspace{3\baselineskip}
 \subsubsection{\VAR{ evolution }}
 
 \begin{multicols}{2}
 
     \raggedcolumns
 
-
     \begin{description}
-    %{ if general_skills|length is gt 0 }%
-    	\item [General Skills] \hfill
+%{      if general_skills|length is gt 0 }%
+    \item [General Skills] \hfill
         \begin{itemize}
-        %{ for skill in general_skills }%
-            \item \VAR{ skill.name }---\sc{\VAR{ skill.category }, \VAR{ skill.level|jc_rank }}
-        %{ endfor }%
+%{      for skill in general_skills }%
+        \item \VAR{ skill.name }---\sc{\VAR{ skill.category }, \VAR{ skill.level|jc_rank }}
+%{      endfor }%
         \end{itemize}
-    %{ endif }%
-    %{ for task in tasks|sort(attribute='id') }%
-    	\phantomsection\addcontentsline{toc}{paragraph}{\VAR{ task.name }}
-    	\needspace{2\baselineskip}
-        \item [\VAR{ task.name }] \sc{\VAR{ task.rank|jc_rank }}
+%{      endif }%
+%{      for task in tasks|sort(attribute='id') }%
+
+    \phantomsection\addcontentsline{toc}{paragraph}{\VAR{ task.name }}
+    \label{skill:\VAR{ task.category|label_form }-\VAR{ task.evolution|label_form }-\VAR{ task.name|label_form }}
+    \needspace{2\baselineskip}
+    \item [\VAR{ task.name }] \sc{\VAR{ task.rank|jc_rank }}
         \begin{itemize}
-        %{ for skill in task.skills }%
-            %{ if skill not in general_skills }%
-	            \item \VAR{ skill.name }---\sc{\VAR{ skill.category }, \VAR{ skill.level|jc_rank }}
-	        %{ endif }%
-        %{ else }%
-            \item \emph{No skills assigned}
-        %{ endfor }%
+%{      for skill in task.skills }%
+%{ 			if skill not in general_skills }%
+        \item \VAR{ skill.name }---\sc{\VAR{ skill.category }, \VAR{ skill.level|jc_rank }}
+%{ 			endif }%
+%{ 		else }%
+        \item \emph{No skills assigned}
+%{ 		endfor }%
         \end{itemize}
-    %{ else }%
-        \item [] \emph{No tasks assigned}
-    %{ endfor }%
+%{      else }%
+    \item [] \emph{No tasks assigned}
+%{ 		endfor }%
     \end{description}
 \end{multicols}

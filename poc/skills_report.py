@@ -8,6 +8,7 @@ import crewms
 
 @jinja_vanish.markup_escape_func
 def latex_escape(text):
+    # type: (str) -> str
     result = text
     if isinstance(text, str):
         result = re.sub(r"&", r"\&", result)
@@ -46,10 +47,16 @@ def jc_rank(input):
         return "OF"
     return input
 
+def label_form(input):
+    # type: (str) -> str
+    return re.sub(r"\W", "", input)
+
+
 latex_jinja_env.filters['jc_rank'] = jc_rank
+latex_jinja_env.filters['label_form'] = label_form
 
 skills_grid = SkillsGrid("/Users/uayeb/Documents/Outdoors/Sailing/James Craig/Training/2018 Training and Assessment Update/" +
-               "JC Training Skills Grid.xlsx")
+               "JC Training Skills Grid.xlsm")
 
 skills_grid.reload_data()
 
@@ -65,6 +72,23 @@ def watchcard_latex(watch_card):
     template = latex_jinja_env.get_template("full_watch_card.tex")
     return template.render(card=watch_card)
 
+def watchcard_latex_summarised(watch_card, render_skills=False):
+    # type: (WatchCard) -> str
+
+    tasks_structured = dict()
+    tasks = watch_card.tasks
+    for task in tasks:
+        tasks_structured[task.category] = defaultdict(list)
+    for task in tasks:
+        tasks_structured[task.category][task.evolution].append(task)
+
+    skills_structured = defaultdict(list)
+    for skill in watch_card.all_skills:
+        skills_structured[skill.category].append(skill)
+
+    template = latex_jinja_env.get_template("watch_card_simplified.tex")
+    return template.render(card=watch_card, tasks_structured=tasks_structured, skills_structured=skills_structured,
+                           render_skills=render_skills)
 
 
 
@@ -109,13 +133,14 @@ def single_evolution_skills_report(category_name, evolution_name):
 
     tasks = [task
              for task in skills_grid.tasks
-             if task.evolution == evolution_name and task.category == category_name]
+             if task.evolution == evolution_name and task.category == category_name]  # type: List[Task]
 
     # Skills in all tasks of this evolution:
     general_skills = find_common_skills(tasks)
 
-    tasks_as_dict = [dict(id=task.id, name=task.name, rank=task.rank, skills=task.skills)
-                     for task in tasks]
+    tasks_as_dict = [dict(id=task.id, category=task.category, evolution=task.evolution,
+                          name=task.name, rank=task.rank, skills=task.skills)
+                     for task in tasks]  # type: List[Dict[str, Any]]
 
     # Remove general skills from individual tasks
     for task in tasks_as_dict:
@@ -149,7 +174,7 @@ def report_section(bill_name):
     card_content = []
     for card in skills_grid.watchcards_for_bill(bill_name):
         card_content.append("\n\n")
-        card_content.append(watchcard_latex(card))
+        card_content.append(watchcard_latex_summarised(card, render_skills=True))
     card_section_template = latex_jinja_env.get_template("card_list_section.tex")
     content.append(card_section_template.render(content="\n".join(card_content)))
 
@@ -160,6 +185,7 @@ def evolution_skills_report():
     content = []
 
     for category in skills_grid.task_categories:
+        content.append(r"\needspace{5\baselineskip}")
         content.append(r"\subsection{" + jinja2.escape(category) + "}")
         evolutions_in_category = [row[0] for row in
                                   session.execute(

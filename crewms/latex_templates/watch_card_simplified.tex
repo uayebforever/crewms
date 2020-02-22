@@ -1,0 +1,44 @@
+%{ extends "full_watch_card.tex" }%
+
+%{ block tasks }%
+
+{\small
+\begin{description}[leftmargin=2em,font=\bfseries\scriptsize]
+%{ for category in tasks_structured }%
+    %{ for evolution in tasks_structured[category] }%
+    \item[\VAR{ category|upper } -- \VAR{ evolution|upper }] \hfill
+    \begin{itemize}[label={}]
+        %{ for task in tasks_structured[category][evolution] }%
+        \item \hyperref[skill:\VAR{ task.category|label_form }-\VAR{ task.evolution|label_form }-\VAR{ task.name|label_form }]
+              {\VAR{ task.name } ~~\sc{\VAR{ task.rank | jc_rank }}}
+        %{ endfor }%
+    \end{itemize}
+    %{ endfor }%
+%{ else }%
+	\item [] \emph{No tasks listed.}
+%{endfor}%
+\end{description}
+}
+
+
+%{ endblock tasks }%
+
+%{ block skills }%
+%{ if render_skills }%
+{\small
+\begin{description}[leftmargin=2em,font=\bfseries\scriptsize]
+%{ for category in skills_structured }%
+    \item[\VAR{ category|upper }] \hfill
+    \begin{itemize}[label={}]
+        %{ for skill in skills_structured[category] }%
+        \item \VAR{ skill.name } ~~\sc{\VAR{ skill.level | jc_rank }}
+        %{ endfor }%
+    \end{itemize}
+%{ else }%
+	\item [] \emph{No tasks listed.}
+%{endfor}%
+\end{description}
+}
+
+%{ endif }%
+%{ endblock skills }%

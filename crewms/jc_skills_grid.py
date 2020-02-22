@@ -256,8 +256,8 @@ class SkillsGrid:
 
     def reload_data(self):
 
-        self.bounding_box = worksheet.CellRange(self.skills_grid_sheet.calculate_dimension())
-        # self.bounding_box = worksheet.CellRange(min_row=0, min_col=0, max_col=)
+        # self.bounding_box = worksheet.CellRange(self.skills_grid_sheet.calculate_dimension())
+        self.bounding_box = worksheet.CellRange(self.skills_grid_sheet.print_area[0])
         self.reload_tasks()
         self.reload_skills()
         generic_tasks = self.reload_watch_and_station_bill_assignments()
