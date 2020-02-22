@@ -154,6 +154,17 @@ def single_evolution_skills_report(category_name, evolution_name):
 
     return content
 
+def card_id_key_for_sorting(key):
+    # type: (WatchCard) -> str
+    match = re.match(r"([a-z])([A-Z]+)([0-9]+)", key.card_number)
+    if match:
+        formatkey = "{bill} {watch} {num:0>2s}".format(
+            bill=match.group(1), watch=match.group(2), num=match.group(3))
+        return formatkey
+    else:
+        return key.card_number
+
+
 def report_section(bill_name):
 
     assert bill_name in skills_grid.bills
@@ -166,7 +177,7 @@ def report_section(bill_name):
 
     content.append(
         watch_bill_template.render(
-            watch_cards=sorted(watchcards, key=lambda x: x.card_number),
+            watch_cards=sorted(watchcards, key=card_id_key_for_sorting),
             duties=watchcards[0].duties.keys()
         )
     )
