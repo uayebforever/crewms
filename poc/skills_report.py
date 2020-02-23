@@ -58,7 +58,7 @@ latex_jinja_env.filters['label_form'] = label_form
 skills_grid = SkillsGrid("/Users/uayeb/Documents/Outdoors/Sailing/James Craig/Training/2018 Training and Assessment Update/" +
                "JC Training Skills Grid.xlsm")
 
-skills_grid.reload_data()
+skills_grid._reload_data()
 
 assert len(skills_grid.watchcards) > 0
 

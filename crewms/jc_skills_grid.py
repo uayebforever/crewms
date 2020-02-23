@@ -43,8 +43,13 @@ class LastNone:
             return value
 
 
-
-
+def _get_or_create_evolution(evolution_name):
+    try:
+        return session.query(Evolution).filter(Evolution.name == evolution_name).one()
+    except:
+        evolution = Evolution(name=evolution_name)
+        session.add(evolution)
+        return evolution
 
 
 class SkillsGrid:
@@ -104,12 +109,12 @@ class SkillsGrid:
 
 
 
-    def reload_data(self):
+    def _reload_data(self):
 
         # self.bounding_box = worksheet.CellRange(self.skills_grid_sheet.calculate_dimension())
         self.bounding_box = worksheet.CellRange(self.skills_grid_sheet.print_area[0])
-        self.reload_tasks()
-        self.reload_skills()
+        self._reload_tasks()
+        self._reload_skills()
         generic_tasks = self.reload_watch_and_station_bill_assignments()
         self.get_watch_and_station_bill_duties(None)
 
@@ -119,7 +124,7 @@ class SkillsGrid:
                     card.tasks.append(task)
         session.commit()
 
-    def reload_tasks(self):
+    def _reload_tasks(self):
         # Tasks
         tl = LastNone()
         for column in self.skills_grid_sheet.iter_cols(min_col=5, min_row=1,
@@ -139,7 +144,7 @@ class SkillsGrid:
             )
         session.commit()
 
-    def reload_skills(self):
+    def _reload_skills(self):
         # Skills
         # TODO: Fix this to use "SkillsRef" reference.
         for row in self.skills_grid_sheet.iter_rows(min_col=1, min_row=13,
@@ -244,8 +249,11 @@ class SkillsGrid:
                                                   min_row=cell.row, max_row=cell.row):
 
                         duty_cell = column[0]  # type: worksheet.Cell
+
+                        evolution = _get_or_create_evolution(evolutions[duty_cell.column])
+
                         watch_card.duties[evolutions[duty_cell.column]] = \
-                            Duty(name=duty_cell.value, evolution=evolutions[duty_cell.column])
+                            Duty(name=duty_cell.value, evolution=evolution)
                     watch_card.name = sheet.cell(cell.row, 3).value
 
             if set(self.watchcards_for_bill(wsb_name)) != watch_cards_seen:

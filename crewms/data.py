@@ -5,7 +5,9 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
-__all__ = ["Base", "Task", "Skill", "Duty", "WatchCard"]
+from typing import Dict, List
+
+__all__ = ["Base", "Task", "Skill", "Duty", "WatchCard", 'Evolution']
 
 Base = declarative_base()
 
@@ -68,8 +70,24 @@ class Duty(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String)
-    evolution = Column(String)
+
     watch_card_id = Column(Integer, ForeignKey('watchcards.id'))
+    evolution_id = Column(Integer, ForeignKey("evolutions.id"))
+
+    evolution = relationship('Evolution', back_populates='duties')  # type: Evolution
+
+    @property
+    def evolution_name(self):
+        return self.evolution.name
+
+class Evolution(Base):
+    __tablename__ = "evolutions"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True)
+    category = Column(String)
+
+    duties = relationship('Duty', back_populates='evolution')  # type: List[Duty]
 
 
 class WatchCard(Base):
@@ -84,7 +102,8 @@ class WatchCard(Base):
 
     tasks = relationship('Task', secondary=task_watchcard)  # type: List[Task]
     duties = relationship('Duty',
-                          collection_class=attribute_mapped_collection('evolution'))  # type: Dict[str, Duty]
+                          collection_class=attribute_mapped_collection('evolution_name'),
+                          cascade="all, delete-orphan")  # type: Dict[str, Duty]
 
     @property
     def all_skills(self):
@@ -97,7 +116,10 @@ class WatchCard(Base):
 
     @property
     def required_rank(self):
-        return max(t.rank for t in self.tasks)
+        if len(self.tasks) == 0:
+            return None
+        else:
+            return max(t.rank for t in self.tasks)
 
     @property
     def one_line_summary(self):
@@ -139,7 +161,7 @@ class WatchCard(Base):
         text.append("    Duties")
         text.append("-"*78)
         for duty in self.duties.values():
-            text.append("{0!s:>15s}: {1!s:15s}".format(duty.evolution, duty.name))
+            text.append("{0!s:>15s}: {1!s:15s}".format(duty.evolution_name, duty.name))
         return "\n".join(text)
 
     @property

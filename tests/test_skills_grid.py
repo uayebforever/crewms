@@ -15,7 +15,7 @@ def test_workbook_open(skills_grid):
 
 def test_reload_data(skills_grid):
 
-    skills_grid.reload_data()
+    skills_grid._reload_data()
     # print(sg.skills)
     # assert isinstance(sg.skills, pd.DataFrame)
     # print(sg.tasks)
