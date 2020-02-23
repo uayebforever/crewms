@@ -1,0 +1,194 @@
+
+% Overleaf Edit Link: https://www.overleaf.com/8439661152xhdjkrkbdxks
+
+% \documentclass[10pt,a4paper,oneside,landscape]{extarticle}
+% Note extarticle is used to allow the smaller 9pt default font. See
+% https://texblog.org/2012/08/29/changing-the-font-size-in-latex/
+% \usepackage[utf8]{fontenc}
+\documentclass[preview,varwidth=\maxdimen]{standalone}
+
+\usepackage{array}
+
+\usepackage{xcolor}
+\definecolor{secondcolor}{rgb}{0.30, 0.13, 0.70}
+\definecolor{highlight}{rgb}{0.85, 0.79, 1.00}
+\definecolor{fade}{rgb}{0.53, 0.31, 0.99}
+\usepackage{colortbl}
+
+\usepackage{longtable}
+
+\usepackage{tikz}
+\usetikzlibrary{shapes,calc}
+
+\usepackage{calc}
+\usepackage[absolute]{textpos}
+
+\usepackage{marginnote} % Required for margin notes
+
+\usepackage[yyyymmdd,hhmmss]{datetime}
+
+\usepackage{enumitem}
+% \setlist{noitemsep}
+\setlist{nosep}
+%\setlist[1]{\labelindent=\parindent} % < Usually a good idea
+\setlist[itemize]{leftmargin=1pc}
+\setlist[description]{leftmargin=1pc}
+%\setlist[itemize,1]{label=$\triangleleft$}
+\setlist[enumerate]{labelsep=*, leftmargin=1.5pc}
+
+\usepackage{xspace}
+% \usepackage{indentfirst}
+% \usepackage{hanging}
+
+\newcommand{\link}[1]{\href{http://#1}{\small
+    {\footnotesize\color{fade}\awesomesolid link}
+    #1}}
+
+\newcommand{\thead}[1]{\textbf{#1}}
+%
+%  __        __   ___                   __       ___
+% |__)  /\  / _` |__     |     /\  \ / /  \ |  |  |
+% |    /~~\ \__> |___    |___ /~~\  |  \__/ \__/  |
+%
+\usepackage[
+    %showframe,
+    left=6pc,
+    right=6pc,
+    % hdivide={11pc, *, 6pc},
+    top=5.5pc,
+    bottom=5pc,
+    marginparwidth=3pc,
+    marginparsep=1pc,
+    reversemp=true,
+    ignoremp=true]{geometry} % Adjust page margins
+
+\setlength{\parskip}{6pt} % Set space between paragraphs
+\setlength{\parindent}{0pt}
+%\newcommand{\tab}{\hspace*{4em}} % Defines a new command for some horizontal space
+
+\usepackage{multicol}
+
+\usepackage{needspace}
+
+%
+%       ___       __   ___  __                __      ___  __   __  ___  ___  __
+% |__| |__   /\  |  \ |__  |__)     /\  |\ | |  \    |__  /  \ /  \  |  |__  |__)
+% |  | |___ /~~\ |__/ |___ |  \    /~~\ | \| |__/    |    \__/ \__/  |  |___ |  \
+%
+\newcommand{\currenthead}{\relax}
+\usepackage{fancyhdr} % Required to customize headers
+\pagestyle{fancy}\fancyhf{} % Use the custom header specified below
+\renewcommand{\headrulewidth}{0pt} % Remove the default horizontal rule under the header
+\lhead{James Craig Training System}
+\rhead{\leftmark}
+\lfoot{\footnotesize ver \today~\currenttime}
+\rfoot{\footnotesize{}Page \thepage{} of \pageref{LastPage}}
+
+%
+%  ___  __       ___  __
+% |__  /  \ |\ |  |  /__`
+% |    \__/ | \|  |  .__/
+%
+\usepackage{mathspec}
+
+\setallmainfonts(Digits,Latin)
+[Ligatures=TeX, % recommended
+   UprightFont={* Light},
+   ItalicFont={* Light Italic},
+   BoldFont={*},
+   BoldItalicFont={* Italic}]{Open Sans}
+
+\newfontfamily\opensansblack[Ligatures=TeX, % recommended
+   UprightFont={* Semibold},
+   ItalicFont={* Semibold Italic},
+   BoldFont={* Bold},
+   BoldItalicFont={* Bold Italic}]{Open Sans}
+
+\newfontfamily\awesomesolid[]{Font Awesome 5 Free Solid}
+\newfontfamily\awesomebrand[]{Font Awesome 5 Brands Regular}
+
+\renewcommand{\sc}[1]{{\fontspec[Scale=0.8, UprightFont={* Light},
+   BoldFont={*}]{Open Sans}{\MakeUppercase{{#1}}}}}
+
+\setmonofont[Ligatures=TeX]{Source Code Pro Light}
+%
+%       ___       __          __   __
+% |__| |__   /\  |  \ | |\ | / _` /__`
+% |  | |___ /~~\ |__/ | | \| \__> .__/
+%
+
+\usepackage[bottomtitles]{titlesec}
+
+%% Section
+\titleformat{\section}
+  {\vspace{-\parskip}%
+   \large\opensansblack\centering}
+  {}{0pt}{\color{secondcolor}\MakeUppercase}
+\titlespacing*{\section}{0pt}{24pt}{6pt}
+
+%\newcommand{\secformat}[1]{\MakeUppercase{{#1}}}
+%% Sub Section
+\titleformat{\subsection}[hang]
+  {\opensansblack}
+  {}{0pt}{\color{secondcolor}}
+
+\titlespacing{\subsection}
+  {0pt}{12pt}{3pt}
+
+%% Sub Sub Section
+\titleformat{\subsubsection}[hang]
+    {\vspace{-\parskip}\opensansblack}
+    {}
+    {0pt}
+    {}
+    []
+\titlespacing*{\subsubsection}{0pt}{6pt}{0pt}
+
+%  __   __       ___  ___      ___  __     ___       __        ___
+% /  ` /  \ |\ |  |  |__  |\ |  |  /__`     |   /\  |__) |    |__
+% \__, \__/ | \|  |  |___ | \|  |  .__/     |  /~~\ |__) |___ |___
+%
+\usepackage{titletoc}
+
+\contentsmargin{2.55em}
+\titlecontents{lsubsection}
+    [1em]% Left
+    {}% Above Code
+    {}% Numbered entry format
+    {}% Numberless entry format
+    {}% Filler page format
+    {}% Below Code
+\titlecontents{lsubsubsection}
+    [2.5em]% Left
+    {\addvspace{-0.4\baselineskip}}% Above Code
+    {}% Numbered entry format
+    {}% Numberless entry format
+    {\titlerule*[.6pc]{\tiny\textbullet} \thecontentspage}% Filler page format
+    {}% Below Code
+\titlecontents*{lparagraph}[3.5em]
+    {\addvspace{-0.4\baselineskip}}% Above code
+    {}% Numbered entry format
+    {}% Numberless entry format
+    {. }% Filler page format
+
+%
+%  __   __   __              ___      ___
+% |  \ /  \ /  ` |  |  |\/| |__  |\ |  |
+% |__/ \__/ \__, \__/  |  | |___ | \|  |
+%
+% NOTE: Hyperref must appear after titletoc!!!
+\usepackage{hyperref}
+
+\hypersetup{
+  colorlinks = false,
+  urlcolor = {highlight},
+  hidelinks
+}
+\begin{document}
+\raggedbottom
+
+
+\VAR{content|safe}
+
+
+\end{document}
