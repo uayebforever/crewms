@@ -27,6 +27,7 @@ class WatchBillLoader:
         self.column_iterator = None  # type: WatchBillColumnIterator
 
     def load_watch_bill_from_xlsx(self):
+        # type: () -> WatchBill
         workbook = openpyxl.load_workbook(self.filename, data_only=True)  # , read_only=True)
 
         assert "WATCH BILL" in workbook.sheetnames
@@ -57,10 +58,10 @@ class WatchBillLoader:
 
                 self._add_emergency_duties_to_card(card, evolutions, row)
 
-                print(card.full_report)
+                # print(card.full_report)
                 cards.append(card)
 
-        watch_bill = WatchBill(cards=cards)
+        return WatchBill(cards=cards)
 
     def _create_evolutions(self):
         evolutions = dict()  # type: Dict[str, Evolution]
