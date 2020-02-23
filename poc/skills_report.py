@@ -1,59 +1,11 @@
 import os
 import re
 import jinja2
-import jinja_vanish
 
 from crewms.jc_skills_grid import *
-import crewms
+from crewms.reporting import jc_rank, label_form, latex_jinja_env
+from crewms import reporting
 
-@jinja_vanish.markup_escape_func
-def latex_escape(text):
-    # type: (str) -> str
-    result = text
-    if isinstance(text, str):
-        result = re.sub(r"&", r"\&", result)
-    if text is None:
-        result = ""
-    return result
-
-latex_jinja_env = jinja_vanish.DynAutoEscapeEnvironment(
-    block_start_string='%{',
-    block_end_string='}%',
-    variable_start_string='\VAR{',
-    variable_end_string='}',
-    comment_start_string='\#{',
-    comment_end_string='}',
-    # line_statement_prefix='%%',
-    line_comment_prefix='%#',
-    trim_blocks=True,
-    autoescape=True,
-    escape_func=latex_escape,
-    loader=jinja2.FileSystemLoader(os.path.join(os.path.dirname(crewms.__file__), 'latex_templates')))
-
-
-def jc_rank(input):
-    input = str(input)
-    if input == "0":
-        return "Trainee"
-    if input == "1":
-        return "DH"
-    if input == "2":
-        return "ADH"
-    if input == "3":
-        return "LDH"
-    if input == "4":
-        return "DL"
-    if input == "5":
-        return "OF"
-    return input
-
-def label_form(input):
-    # type: (str) -> str
-    return re.sub(r"\W", "", input)
-
-
-latex_jinja_env.filters['jc_rank'] = jc_rank
-latex_jinja_env.filters['label_form'] = label_form
 
 skills_grid = SkillsGrid("/Users/uayeb/Documents/Outdoors/Sailing/James Craig/Training/2018 Training and Assessment Update/" +
                "JC Training Skills Grid.xlsm")
@@ -165,25 +117,17 @@ def card_id_key_for_sorting(key):
         return key.card_number
 
 
-def report_section(bill_name):
-
-    assert bill_name in skills_grid.bills
+def report_section(bill_name, watchcards):
+    # type: (str, List[WatchCard]) -> List[str]
 
     content = []
 
-    watch_bill_template = latex_jinja_env.get_template("watch_bill.tex")
     content.append("\clearpage\\section{" + bill_name + "}")
-    watchcards = skills_grid.watchcards_for_bill(bill_name)
 
-    content.append(
-        watch_bill_template.render(
-            watch_cards=sorted(watchcards, key=card_id_key_for_sorting),
-            duties=watchcards[0].duties.keys()
-        )
-    )
+    content.append(reporting.watch_and_station_bill(watchcards, card_id_key_for_sorting))
 
     card_content = []
-    for card in skills_grid.watchcards_for_bill(bill_name):
+    for card in watchcards:
         card_content.append("\n\n")
         card_content.append(watchcard_latex_summarised(card, render_skills=True))
     card_section_template = latex_jinja_env.get_template("card_list_section.tex")
@@ -216,10 +160,8 @@ with open("/Users/uayeb/Desktop/Watch Card Skills List/SkillsAssignmentReport.te
 
     content.append(evolution_skills_report())
 
-    content.extend(report_section("Move Ship"))
-    content.extend(report_section("Harbour Cruise"))
-    content.extend(report_section("Day Sail"))
-
+    for bill in ("Move Ship", "Harbour Cruise", "Day Sail"):
+        content.extend(report_section(bill, skills_grid.watchcards_for_bill(bill)))
 
     template = latex_jinja_env.get_template("crew_report.tex")
     f.write(template.render(content="\n".join(content)))
