@@ -19,6 +19,10 @@ from typing import List, Iterable, Tuple, Dict
 from .data import *
 from .pyxl_helpers import get_cells_for_reference, get_range_for_reference
 
+EMERGENCY_EVOLUTION_CATEGORY_NAME = "EMERGENCY PARTIES"
+SEA_DUTY_CATEGORY_NAME = "SPECIAL SEA DUTIES"
+
+
 class WatchBillLoader:
 
     def __init__(self, filename):
@@ -43,7 +47,9 @@ class WatchBillLoader:
         self.column_iterator = WatchBillColumnIterator(self.worksheet, column_cell_range)
 
         # create evolutions
-        evolutions = self._create_evolutions()
+        evolutions = dict()
+        evolutions.update(self._create_evolutions(EMERGENCY_EVOLUTION_CATEGORY_NAME))
+        evolutions.update(self._create_evolutions(SEA_DUTY_CATEGORY_NAME))
 
         cards = list()
 
@@ -56,22 +62,24 @@ class WatchBillLoader:
                 card.card_number = row_data["Crew No."]
                 card.name = row_data["Position"]
 
-                self._add_emergency_duties_to_card(card, evolutions, row)
 
-                # print(card.full_report)
+                self._add_duties_to_card_for_category(card, evolutions, row, SEA_DUTY_CATEGORY_NAME)
+                self._add_duties_to_card_for_category(card, evolutions, row, EMERGENCY_EVOLUTION_CATEGORY_NAME)
+
+                print(card.full_report)
                 cards.append(card)
 
         return WatchBill(cards=cards)
 
-    def _create_evolutions(self):
+    def _create_evolutions(self, category):
         evolutions = dict()  # type: Dict[str, Evolution]
-        for _, evolution_name, _ in self.column_iterator.iterate_emergency_duties(3):
+        for _, evolution_name, _ in self.column_iterator.iterate_category(3, category):
             evolutions[evolution_name] = Evolution(name=evolution_name,
-                                                   category=self.column_iterator.EMERGENCY_EVOLUTION_CATEGORY_NAME)
+                                                   category=category)
         return evolutions
 
-    def _add_emergency_duties_to_card(self, card, evolutions, row):
-        for _, evolution, duty_name in self.column_iterator.iterate_emergency_duties(row):
+    def _add_duties_to_card_for_category(self, card, evolutions, row, category):
+        for _, evolution, duty_name in self.column_iterator.iterate_category(row, category):
             duty = Duty(evolution=evolutions[evolution], name=duty_name, watch_card_id=card.id)
             evolutions[evolution].duties.append(duty)
             card.duties[evolution] = duty
@@ -100,8 +108,6 @@ class WatchBill(object):
 
 class WatchBillColumnIterator(object):
 
-    EMERGENCY_EVOLUTION_CATEGORY_NAME = "EMERGENCY PARTIES"
-    SEA_DUTY_CATEGORY_NAME = "SPECIAL_SEA_DUTIES"
 
     def __init__(self, worksheet, cell_range):
         # type: (Worksheet, CellRange) -> None
@@ -112,7 +118,7 @@ class WatchBillColumnIterator(object):
         self.columns = dict()  # type: Dict[str, Tuple[int, str]]
         self.columns_by_category = defaultdict(list)  # type: Dict[str, List[str]]
 
-        category = None  # type: str
+        category = ""  # type: str
         for row, col in next(iter(cell_range.rows)):
             category_cell_value = worksheet.cell(row - 1, col).value
             if category_cell_value is not None and str(category_cell_value).strip() != "":
@@ -132,13 +138,13 @@ class WatchBillColumnIterator(object):
             assert isinstance(cell, Cell)
             yield cell.column, self.column_index[cell.column][0], cell.value
 
-    def iterate_emergency_duties(self, row_to_iterate):
-        # type: (int) -> Tuple[int, str, str]
-        yield from self.iterate_category(row_to_iterate, self.EMERGENCY_EVOLUTION_CATEGORY_NAME)
-
-    def iterate_sea_duties(self, row_to_iterate):
-        # type: (int) -> Tuple[int, str, str]
-        yield from self.iterate_category(row_to_iterate, self.SEA_DUTY_CATEGORY_NAME)
+    # def iterate_emergency_duties(self, row_to_iterate):
+    #     # type: (int) -> Tuple[int, str, str]
+    #     yield from self.iterate_category(row_to_iterate, EMERGENCY_EVOLUTION_CATEGORY_NAME)
+    #
+    # def iterate_sea_duties(self, row_to_iterate):
+    #     # type: (int) -> Tuple[int, str, str]
+    #     yield from self.iterate_category(row_to_iterate, SEA_DUTY_CATEGORY_NAME)
 
     def iterate_category(self, row_to_iterate, category_name):
         # type: (int, str) -> Tuple[int, str, str]
