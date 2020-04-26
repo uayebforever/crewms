@@ -84,7 +84,7 @@ def single_evolution_skills_report(category_name, evolution_name):
     assert evolution_name in skills_grid.evolutions
 
     tasks = [task
-             for task in skills_grid.tasks
+             for task in skills_grid.tasks.values()
              if task.evolution == evolution_name and task.category == category_name]  # type: List[Task]
 
     # Skills in all tasks of this evolution:

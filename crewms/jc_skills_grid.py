@@ -3,16 +3,14 @@ from collections import defaultdict
 # import pandas as pd
 # import sqlalchemy
 
-import openpyxl
 from openpyxl.worksheet import worksheet
-import openpyxl
 
+from typing import List, Dict, Any
 
-from typing import List, Dict, Any, Set
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import sessionmaker
 
-from sqlalchemy import create_engine, Column, Integer, String, Table, ForeignKey, select
-from sqlalchemy.orm import sessionmaker, relationship
-from sqlalchemy.orm.collections import attribute_mapped_collection
+from .skill_grid_loader_base import SkillGridLoaderBase
 
 engine = create_engine("sqlite:///:memory:")
 Session = sessionmaker(bind=engine)
@@ -52,32 +50,88 @@ def _get_or_create_evolution(evolution_name):
         return evolution
 
 
+
+class SkillsGridLoader(SkillGridLoaderBase):
+
+    def _load_skills(self):
+        # type: () -> Dict[int, Skill]
+        # Skills
+        # TODO: Fix this to use "SkillsRef" reference.
+
+        skills = dict()  # type: Dict[int, Skill]
+        for row in self.skills_grid_sheet.iter_rows(min_col=1, min_row=13,
+                                                    max_col=3, max_row=self.bounding_box.max_row):
+            category, skill, level = row
+            skill = Skill(id=category.row, category=category.value, name=skill.value, level=level.value)
+
+            skills[skill.id] = skill
+
+            session.add(skill)
+
+        session.commit()
+        return skills
+
+    def _load_tasks(self):
+        # type: () -> Dict[int, Task]
+        # Tasks
+        tl = LastNone()
+        tasks = dict()  # type: Dict[int, Task]
+        for column in self.skills_grid_sheet.iter_cols(min_col=5, min_row=1,
+                                                       max_col=self.bounding_box.max_col, max_row=4):
+            cat, evol, name, rank = column
+
+            if name.value is None:
+                continue
+
+            task = Task(id=cat.column,
+                        category=str(tl.last_if_none("category", cat.value)),
+                        evolution=str(tl.last_if_none("evolution", evol.value)),
+                        name=str(tl.last_if_none("name", name.value)),
+                        rank=rank.value)
+            tasks[task.id] = task
+            session.add(
+                task
+            )
+        session.commit()
+        return tasks
+
+    def load(self):
+        # type: () -> SkillsGrid
+        skills = self._load_skills()
+        tasks = self._load_tasks()
+
+        self._link_skills_to_tasks()
+
+        skills_grid = SkillsGrid(skills=skills, tasks=tasks)
+
+        return SkillsGrid
+
+    def _link_skills_to_tasks(self):
+        for row in self.skills_grid_sheet.iter_rows(min_col=5, min_row=14,
+                                                    max_col=self.bounding_box.max_col,
+                                                    max_row=self.bounding_box.max_row):
+            for cell in row:
+                if cell.value == "Y":
+                    # Create relationship
+                    skill = skill_by_id(cell.row)
+                    task = task_by_id(cell.column)
+                    skill.tasks.append(task)
+        session.commit()
+        return task_by_id
+
+
 class SkillsGrid:
 
-    def __init__(self, workbook_filename):
+    def __init__(self, skills, tasks):
+        # type: (Dict[int, Skill], Dict[int, Task]) -> None
 
-        self.workbook = openpyxl.load_workbook(workbook_filename, data_only=True) #, read_only=True)
-
-        assert "Skills Grid" in self.workbook.sheetnames
-        self.skills_grid_sheet = self.workbook["Skills Grid"]  # type: worksheet.Worksheet
-
-        assert "WnS Bill" in self.workbook.sheetnames
-        # self.wns_bill = self.workbook["WnS Bill"]  # type: worksheet.Worksheet
-
-
-        self.defined_names = self.workbook.defined_names
+        self.skills = skills  # type: Dict[int, Skill]
+        self.tasks = tasks  # type: Dict[int, Task]
 
         self.bills = list()
 
 
 
-    @property
-    def skills(self):
-        return session.query(Skill).all()
-
-    @property
-    def tasks(self):
-        return session.query(Task).all()
 
     @property
     def evolutions(self):
@@ -97,24 +151,11 @@ class SkillsGrid:
         # type: (str) -> List[WatchCard]
         return session.query(WatchCard).filter(WatchCard.bill == bill).order_by(WatchCard.card_number).all()
 
-    def _get_cells_for_reference(self, reference_name):
-
-        cells = []
-
-        for sheet_name, cell_reference in self.workbook.defined_names[reference_name].destinations:
-            ws = self.workbook[sheet_name]
-            cells.append(ws[cell_reference])
-
-        return cells
 
 
 
     def _reload_data(self):
 
-        # self.bounding_box = worksheet.CellRange(self.skills_grid_sheet.calculate_dimension())
-        self.bounding_box = worksheet.CellRange(self.skills_grid_sheet.print_area[0])
-        self._reload_tasks()
-        self._reload_skills()
         generic_tasks = self.reload_watch_and_station_bill_assignments()
         self.get_watch_and_station_bill_duties(None)
 
@@ -124,49 +165,6 @@ class SkillsGrid:
                     card.tasks.append(task)
         session.commit()
 
-    def _reload_tasks(self):
-        # Tasks
-        tl = LastNone()
-        for column in self.skills_grid_sheet.iter_cols(min_col=5, min_row=1,
-                                                       max_col=self.bounding_box.max_col, max_row=4):
-            cat, evol, name, rank = column
-
-            if name.value is None:
-                continue
-
-            task = Task(id=cat.column,
-                        category=str(tl.last_if_none("category", cat.value)),
-                        evolution=str(tl.last_if_none("evolution", evol.value)),
-                        name=str(tl.last_if_none("name", name.value)),
-                        rank=rank.value)
-            session.add(
-                task
-            )
-        session.commit()
-
-    def _reload_skills(self):
-        # Skills
-        # TODO: Fix this to use "SkillsRef" reference.
-        for row in self.skills_grid_sheet.iter_rows(min_col=1, min_row=13,
-                                                    max_col=3, max_row=self.bounding_box.max_row):
-            category, skill, level = row
-            session.add(
-                Skill(id=category.row,
-                      category=category.value,
-                      name=skill.value,
-                      level=level.value)
-            )
-        session.commit()
-        for row in self.skills_grid_sheet.iter_rows(min_col=5, min_row=14,
-                                                    max_col=self.bounding_box.max_col, max_row=self.bounding_box.max_row):
-            for cell in row:
-                if cell.value == "Y":
-                    # Create relationship
-                    skill = skill_by_id(cell.row)
-                    task = task_by_id(cell.column)
-                    skill.tasks.append(task)
-        session.commit()
-        return task_by_id
 
     def reload_watch_and_station_bill_assignments(self):
         # Watch and Station Bill Assignments
@@ -266,12 +264,13 @@ class SkillsGrid:
 
 
     def skills_for_task_by_id(self, id):
+        # type: (int) -> List[Skill]
         # assert id in self.tasks.index, "Unknown task"
         # return self.skills[self.skills[id] == "Y"]
 
-        task = session.query(Task).filter(Task.id == id).one()
+        # task = session.query(Task).filter(Task.id == id).one()
 
-        return task.skills
+        return self.tasks[id].skills
 
 
 
