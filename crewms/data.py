@@ -21,17 +21,26 @@ task_watchcard = Table("task_watchcard", Base.metadata,
                        Column('watchcard_id', ForeignKey("watchcards.id"), primary_key=True)
                        )
 
+duty_task = Table("duty_task", Base.metadata,
+                  Column('duty_id', ForeignKey('duties.id'), primary_key=True),
+                  Column('task_id', ForeignKey('tasks.id'), primary_key=True)
+                  )
 
 class Task(Base):
     __tablename__ = "tasks"
 
     id = Column(Integer, primary_key=True)
-    name = Column(String)
-    category = Column(String)
-    evolution = Column(String)
+    name = Column(String)  # type: str
+    category = Column(String)  # type: str
+    evolution = Column(String)  # type: str
     rank = Column(Integer)
 
+    duty_match_re = Column(String)  # type: str
+
     skills = relationship('Skill', secondary=task_skill, back_populates="tasks")
+
+    duties = relationship('Duty', secondary=duty_task, back_populates="tasks")
+
 
     @property
     def one_line_summary(self):
@@ -68,17 +77,25 @@ class Skill(Base):
 class Duty(Base):
     __tablename__ = "duties"
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
+    id = Column(Integer, primary_key=True)  # type: int
+    name = Column(String)  # type: str
+    short_name = Column(String)  # type: str
 
     watch_card_id = Column(Integer, ForeignKey('watchcards.id'))
     evolution_id = Column(Integer, ForeignKey("evolutions.id"))
 
     evolution = relationship('Evolution', back_populates='duties')  # type: Evolution
 
+    tasks = relationship('Task', back_populates='duties', secondary=duty_task)  # type: List[Task]
+
     @property
-    def evolution_name(self):
+    def evolution_name(self) -> str:
+
         return self.evolution.name
+
+    def __repr__(self):
+        return "<Duty(%s - %s)>" % (self.evolution.name, self.name)
+
 
 class Evolution(Base):
     __tablename__ = "evolutions"
@@ -88,6 +105,9 @@ class Evolution(Base):
     category = Column(String)
 
     duties = relationship('Duty', back_populates='evolution')  # type: List[Duty]
+
+    def __repr__(self):
+        return "<Evolution(%s - %s)>" % (self.category, self.name)
 
 
 class WatchCard(Base):
@@ -100,10 +120,17 @@ class WatchCard(Base):
     crew_category = Column(String)
     manning_requirements = Column(String)
 
-    tasks = relationship('Task', secondary=task_watchcard)  # type: List[Task]
+    # tasks = relationship('Task', secondary=task_watchcard)  # type: List[Task]
     duties = relationship('Duty',
                           collection_class=attribute_mapped_collection('evolution_name'),
                           cascade="all, delete-orphan")  # type: Dict[str, Duty]
+
+    @property
+    def tasks(self) -> List[Task]:
+        tasks = set()
+        for duty in self.duties.values():
+            tasks.update(duty.tasks)
+        return list(tasks)
 
     @property
     def all_skills(self):

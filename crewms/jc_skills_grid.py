@@ -4,6 +4,7 @@ from collections import defaultdict
 # import sqlalchemy
 
 from openpyxl.worksheet import worksheet
+from openpyxl.utils import cell
 
 from typing import List, Dict, Any
 
@@ -11,6 +12,13 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
 from .skill_grid_loader_base import SkillGridLoaderBase
+
+# Set up logging
+from . import slogging
+
+log = slogging.getLogger(__name__)
+log.setLevel(slogging.DEBUG)
+
 
 engine = create_engine("sqlite:///:memory:")
 Session = sessionmaker(bind=engine)
@@ -40,6 +48,16 @@ class LastNone:
             self._store[id] = value
             return value
 
+
+class LastOrNone(object):
+    def __init__(self):
+        self.last_value = None
+    def get(self, value):
+        if value is None:
+            return self.last_value
+        else:
+            self.last_value = value
+            return value
 
 def _get_or_create_evolution(evolution_name):
     try:
@@ -74,24 +92,27 @@ class SkillsGridLoader(SkillGridLoaderBase):
     def _load_tasks(self):
         # type: () -> Dict[int, Task]
         # Tasks
-        tl = LastNone()
         tasks = dict()  # type: Dict[int, Task]
-        for column in self.skills_grid_sheet.iter_cols(min_col=5, min_row=1,
-                                                       max_col=self.bounding_box.max_col, max_row=4):
-            cat, evol, name, rank = column
+
+        category_last = LastOrNone()
+        evolution_last = LastOrNone()
+        task_last = LastOrNone()
+
+        for column in self.iter_cols("Duties"):
+            cat, evol, dut, name, match_re = column
 
             if name.value is None:
                 continue
 
             task = Task(id=cat.column,
-                        category=str(tl.last_if_none("category", cat.value)),
-                        evolution=str(tl.last_if_none("evolution", evol.value)),
-                        name=str(tl.last_if_none("name", name.value)),
-                        rank=rank.value)
+                        category=str(category_last.get(cat.value)),
+                        evolution=str(evolution_last.get(evol.value)),
+                        name=str(task_last.get(name.value)),
+                        duty_match_re=match_re.value,
+                        rank=0) # TODO: Should do a sensible rank.
             tasks[task.id] = task
-            session.add(
-                task
-            )
+            log.debug(task)
+            session.add(task)
         session.commit()
         return tasks
 
@@ -104,7 +125,7 @@ class SkillsGridLoader(SkillGridLoaderBase):
 
         skills_grid = SkillsGrid(skills=skills, tasks=tasks)
 
-        return SkillsGrid
+        return skills_grid
 
     def _link_skills_to_tasks(self):
         for row in self.skills_grid_sheet.iter_rows(min_col=5, min_row=14,
@@ -118,6 +139,18 @@ class SkillsGridLoader(SkillGridLoaderBase):
                     skill.tasks.append(task)
         session.commit()
         return task_by_id
+
+    def get_evolution(self, name: str, category: str) -> Evolution:
+        result = session.query(Evolution).filter(Evolution.category == category, Evolution.name == name).one_or_none()
+        if result is None:
+            result = Evolution(name=name, category=category)
+        return result
+
+    def get_duty(self, name: str, evolution: Evolution) -> Duty:
+        result = session.query(Duty).filter(Duty.evolution == evolution, Duty.name == name).one_or_none()
+        if result is None:
+            result = Duty(name=name, evolution=evolution)
+        pass
 
 
 class SkillsGrid:
@@ -150,62 +183,6 @@ class SkillsGrid:
     def watchcards_for_bill(self, bill):
         # type: (str) -> List[WatchCard]
         return session.query(WatchCard).filter(WatchCard.bill == bill).order_by(WatchCard.card_number).all()
-
-
-
-
-    def _reload_data(self):
-
-        generic_tasks = self.reload_watch_and_station_bill_assignments()
-        self.get_watch_and_station_bill_duties(None)
-
-        for bill in generic_tasks:
-            for crew_category, task in generic_tasks[bill].items():
-                for card in all_crew_cards_for_category_and_bill(crew_category, bill):
-                    card.tasks.append(task)
-        session.commit()
-
-
-    def reload_watch_and_station_bill_assignments(self):
-        # Watch and Station Bill Assignments
-        wsb_region = dict()
-        wsb_region["min row"] = self._get_cells_for_reference("BillAssignmentRef")[0].row
-        wsb_region["max row"] = self._get_cells_for_reference("SkillsRef")[0].row - 1
-        wsb_region["header col"] = self._get_cells_for_reference("BillAssignmentRef")[0].column
-        wsb_locations = dict()
-        for row in self.skills_grid_sheet.iter_rows(
-            min_row=wsb_region["min row"], min_col=wsb_region["header col"],
-            max_row=wsb_region["max row"], max_col=wsb_region["header col"]):
-            if row[0].value.startswith("WSB Task Assignment:"):
-                wsb_locations[row[0].value[len("WSB Task Assignment:") + 1:]] = row[0].row
-        # print(wsb_locations)
-
-        self.bills = [s for s in wsb_locations]
-
-        generic_tasks = defaultdict(dict)  # type: Dict[str, Dict[str, Task]]
-
-        for wsb_name in wsb_locations:
-            for column in self.skills_grid_sheet.iter_cols(min_col=wsb_region["header col"] + 1,
-                                                           min_row=wsb_locations[wsb_name],
-                                                           max_col=self.bounding_box.max_col,
-                                                           max_row=wsb_locations[wsb_name]):
-                cell = column[0]
-                if cell.value is not None:
-                    value = str(cell.value)
-                    if value.startswith("All "):
-                        crew_category = value[len("All "):]
-                        generic_tasks[wsb_name][crew_category] = task_by_id(cell.column)
-                        continue
-                    for card_id in cell.value.split(","):
-                        watch_card = watchcard_by_number_and_bill(card_id, wsb_name)
-                        if watch_card is None:
-                            watch_card = WatchCard(bill=wsb_name, card_number=card_id)
-                            session.add(watch_card)
-
-                        # print("Creating card %s" % cell.value)
-                        watch_card.tasks.append(task_by_id(cell.column))
-        session.commit()
-        return generic_tasks
 
     def get_watch_and_station_bill_duties(self, wsb_locations):
 
@@ -307,4 +284,8 @@ def skill_by_id(id):
 
 def task_by_id(id):
     # type: (int) -> Task
-    return session.query(Task).filter(Task.id == id).one()
+    try:
+        return session.query(Task).filter(Task.id == id).one()
+    except Exception as e:
+        log.error("Task ID %s not found", cell.get_column_letter(id))
+        raise e

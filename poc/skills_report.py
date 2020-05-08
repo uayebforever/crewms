@@ -5,18 +5,11 @@ import jinja2
 from crewms.jc_skills_grid import *
 from crewms.reporting import jc_rank, label_form, latex_jinja_env
 from crewms import reporting
+from crewms.skill_watch_bill_mappers import DumbSkillToDutyMapper, HackedSkillToDutyMapper
+from crewms.watch_bill import WatchBillLoader, WatchBill
 
 
-skills_grid = SkillsGrid("/Users/uayeb/Documents/Outdoors/Sailing/James Craig/Training/2018 Training and Assessment Update/" +
-               "JC Training Skills Grid.xlsm")
-
-skills_grid._reload_data()
-
-assert len(skills_grid.watchcards) > 0
-
-if not os.path.exists("/Users/uayeb/Desktop/Watch Card Skills List"):
-    os.mkdir("/Users/uayeb/Desktop/Watch Card Skills List")
-
+from crewms.jc_skills_grid import session
 
 def watchcard_latex(watch_card):
     # type: (WatchCard) -> str
@@ -25,7 +18,7 @@ def watchcard_latex(watch_card):
     return template.render(card=watch_card)
 
 def watchcard_latex_summarised(watch_card, render_skills=False):
-    # type: (WatchCard) -> str
+    # type: (WatchCard, bool) -> str
 
     tasks_structured = dict()
     tasks = watch_card.tasks
@@ -44,29 +37,27 @@ def watchcard_latex_summarised(watch_card, render_skills=False):
 
 
 
-
-
-
-with open("/Users/uayeb/Desktop/Watch Card Skills List/Move Ship.txt", "w") as f:
-
-    for card in skills_grid.watchcards_for_bill("Move Ship"):
-        assert isinstance(card, WatchCard)
-        f.write("\n\n")
-        f.write(card.full_report)
-
-with open("/Users/uayeb/Desktop/Watch Card Skills List/Harbour Cruise.txt", "w") as f:
-
-    for card in skills_grid.watchcards_for_bill("Harbour Cruise"):
-        assert isinstance(card, WatchCard)
-        f.write("\n\n")
-        f.write(card.full_report)
-
-with open("/Users/uayeb/Desktop/Watch Card Skills List/Day Sail.txt", "w") as f:
-
-    for card in skills_grid.watchcards_for_bill("Day Sail"):
-        assert isinstance(card, WatchCard)
-        f.write("\n\n")
-        f.write(card.full_report)
+#
+# with open("/Users/uayeb/Desktop/Watch Card Skills List/Move Ship.txt", "w") as f:
+#
+#     for card in skills_grid.watchcards_for_bill("Move Ship"):
+#         assert isinstance(card, WatchCard)
+#         f.write("\n\n")
+#         f.write(card.full_report)
+#
+# with open("/Users/uayeb/Desktop/Watch Card Skills List/Harbour Cruise.txt", "w") as f:
+#
+#     for card in skills_grid.watchcards_for_bill("Harbour Cruise"):
+#         assert isinstance(card, WatchCard)
+#         f.write("\n\n")
+#         f.write(card.full_report)
+#
+# with open("/Users/uayeb/Desktop/Watch Card Skills List/Day Sail.txt", "w") as f:
+#
+#     for card in skills_grid.watchcards_for_bill("Day Sail"):
+#         assert isinstance(card, WatchCard)
+#         f.write("\n\n")
+#         f.write(card.full_report)
 
 def find_common_skills(task_list):
     # type: (List[Task]) -> Set[Skill]
@@ -135,7 +126,28 @@ def report_section(bill_name, watchcards):
 
     return content
 
-def evolution_skills_report():
+def watch_bill_report(watch_bill: WatchBill) -> List[str]:
+
+    content = []
+
+    bill_name = "Watch Bill"
+
+    content.append("\clearpage\\section{" + bill_name + "}")
+
+    # content.append(reporting.watch_and_station_bill(watchcards, card_id_key_for_sorting))
+
+
+
+    card_content = []
+    for card in watch_bill.cards:
+        card_content.append("\n\n")
+        card_content.append(watchcard_latex_summarised(card, render_skills=True))
+    card_section_template = latex_jinja_env.get_template("card_list_section.tex")
+    content.append(card_section_template.render(content="\n".join(card_content)))
+
+    return content
+
+def evolution_skills_report(skills_grid: SkillsGrid):
 
     content = []
 
@@ -155,13 +167,40 @@ def evolution_skills_report():
 
     return evolution_section.render(content="\n".join(content))
 
-with open("/Users/uayeb/Desktop/Watch Card Skills List/SkillsAssignmentReport.tex", "w") as f:
-    content = []
 
-    content.append(evolution_skills_report())
+if __name__ == "__main__":
+    skills_grid = SkillsGridLoader("/Users/uayeb/Documents/Outdoors/Sailing/James Craig/Training/2018 Training and Assessment Update/" +
+                   "JC Training Skills Grid.xlsm").load()
 
-    for bill in ("Move Ship", "Harbour Cruise", "Day Sail"):
-        content.extend(report_section(bill, skills_grid.watchcards_for_bill(bill)))
 
-    template = latex_jinja_env.get_template("crew_report.tex")
-    f.write(template.render(content="\n".join(content)))
+    # assert len(skills_grid.watchcards) > 0
+
+    if not os.path.exists("/Users/uayeb/Desktop/Watch Card Skills List"):
+        os.mkdir("/Users/uayeb/Desktop/Watch Card Skills List")
+
+
+
+    with open("/Users/uayeb/Desktop/Watch Card Skills List/SkillsAssignmentReport.tex", "w") as f:
+        content = []
+
+        content.append(evolution_skills_report(skills_grid))
+
+        # for bill in ("Move Ship", "Harbour Cruise", "Day Sail"):
+        #     content.extend(report_section(bill, skills_grid.watchcards_for_bill(bill)))
+
+        watch_bill = WatchBillLoader(os.path.join(os.path.dirname(__file__), "modern_wns_bill.xlsx")).load_watch_bill_from_xlsx()
+
+        duties_mapped = HackedSkillToDutyMapper(watch_bill, skills_grid).map()
+        session.commit()
+
+        for duty, mapped in duties_mapped:
+            if duty.evolution_name.startswith("Oil"):
+                if mapped:
+                    print("Mapped duty {} to tasks: {}".format(duty, duty.tasks))
+                else:
+                    print("Unmapped" + " duty: " + str(duty))
+
+        content.extend(watch_bill_report(watch_bill))
+
+        template = latex_jinja_env.get_template("crew_report.tex")
+        f.write(template.render(content="\n".join(content)))

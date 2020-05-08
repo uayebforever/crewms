@@ -1,4 +1,4 @@
-from collections import defaultdict, _KT, _VT
+from collections import defaultdict
 
 from sqlalchemy import create_engine, Column, Integer, String, Table, ForeignKey, select
 from sqlalchemy.orm import sessionmaker, relationship
@@ -22,14 +22,6 @@ from .pyxl_helpers import get_cells_for_reference, get_range_for_reference
 
 EMERGENCY_EVOLUTION_CATEGORY_NAME = "EMERGENCY PARTIES"
 SEA_DUTY_CATEGORY_NAME = "SPECIAL SEA DUTIES"
-
-
-class KeyedDefaultDict(defaultdict):
-
-    def __missing__(self, key: _KT) -> _VT:
-        if self.default_factory is not None:
-            self[key] = self.default_factory(key)
-            return self[key]
 
 
 class WatchBillLoader:
@@ -75,7 +67,7 @@ class WatchBillLoader:
                 self._add_duties_to_card_for_category(card, evolutions, row, SEA_DUTY_CATEGORY_NAME)
                 self._add_duties_to_card_for_category(card, evolutions, row, EMERGENCY_EVOLUTION_CATEGORY_NAME)
 
-                print(card.full_report)
+                # print(card.full_report)
                 cards.append(card)
 
         return WatchBill(cards=cards)
@@ -89,9 +81,10 @@ class WatchBillLoader:
 
     def _add_duties_to_card_for_category(self, card: WatchCard, evolutions, row, category):
         for _, evolution, duty_name in self.column_iterator.iterate_category(row, category):
-            duty = Duty(evolution=evolutions[evolution], name=duty_name, watch_card_id=card.id)
-            evolutions[evolution].duties.append(duty)
-            card.duties[evolution] = duty
+            if duty_name is not None and len(duty_name.strip()) > 0:
+                duty = Duty(evolution=evolutions[evolution], name=duty_name, watch_card_id=card.id)
+                evolutions[evolution].duties.append(duty)
+                card.duties[evolution] = duty
 
     def row_is_station(self, row):
         # type: (Dict[str, Any]) -> bool

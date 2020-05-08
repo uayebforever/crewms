@@ -1,7 +1,9 @@
 import openpyxl
+from openpyxl.workbook import workbook
 from openpyxl.worksheet import worksheet
-from openpyxl.worksheet import worksheet
+from openpyxl.worksheet.cell_range import CellRange
 
+from typing import Tuple, List
 
 
 class SkillGridLoaderBase:
@@ -27,3 +29,28 @@ class SkillGridLoaderBase:
             cells.append(ws[cell_reference])
 
         return cells
+
+    def iter_cols(self, defined_name: str):
+        """Iterate over the named range by columns."""
+        sheet_title, range = self.get_range_for_name(defined_name)
+        ws = self.workbook[sheet_title]  # type: worksheet.Worksheet
+        return ws.iter_cols(min_col=range.min_col, max_col=range.max_col, min_row=range.min_row, max_row=range.max_row)
+
+    def iter_rows(self, defined_name: str):
+        """Iterate over the named range by columns."""
+        sheet_title, range = self.get_range_for_name(defined_name)
+        ws = self.workbook[sheet_title]  # type: worksheet.Worksheet
+        return ws.iter_rows(min_col=range.min_col, max_col=range.max_col, min_row=range.min_row, max_row=range.max_row)
+
+    def get_range_for_name(self, defined_name) -> Tuple[str, CellRange]:
+        # see https://openpyxl.readthedocs.io/en/stable/defined_names.html
+        dests = list(self.defined_names[defined_name].destinations)
+        if len(dests) != 1:
+            raise Exception("Destination is either multiple ranges or has no range.")
+        sheet_title, range_str = dests[0]
+        range = CellRange(range_string=range_str)
+        return sheet_title, range
+
+    def validate_spreadsheet(self):
+
+        assert "Duties" in self.defined_names
